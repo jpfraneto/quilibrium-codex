@@ -1,0 +1,137 @@
+PROOF OF MEANINGFUL WORK - Cassandra Heart
+
+This article is included as part of a series titled "Onchain", written by different folks on Farcaster.
+
+Quilibrium has been a labor of love for over six years at this point, iterating over time to take advantage of advances in cryptography and the hard lessons learned of distributed systems. This naturally requires making tradeoffs on its most efficient use cases, but ultimately the construction is one that gives a good balance in the trilemma of security, performance, and scalability. This is achieved via a consensus algorithm I have summarily titled Proof of Meaningful Work.
+
+The whitepaper, which outlines the underlying approaches to how this is implemented, has proven to be a challenge to understand, as it is deep in academic literature which is restrained in scope to the intersection of the Venn diagram of researchers in the fields of cryptography and multi-party computation, distributed systems, database architecture, and graph theory. Typically any one of these specialties makes for dense taxonomies one has to internalize before being able to read an article from the field, to combine them all has lead to a situation where it feels nearly insurmountable to understand implicitly what it actually is, and what can be done with it. To understand how it works in plain English, it is important to understand first what Quilibrium is, and what Quilibrium is not.
+
+Quilibrium's mission, simplified, is to secure every bit of traffic of the Internet.
+
+Quilibrium is:
+
+A censorship-resistant peer-to-peer network for application infrastructure.
+
+A multi-party computation framework.
+
+A privacy-preserving E2EE framework.
+
+Incentivized, through the use of a fair-launch based, tokenized consensus model.
+
+Quilibrium is not:
+
+A blockchain – strictly, not a distributed ledger produced by linear sequences of blocks of transactions.
+
+A design by committee project – like more traditional OSS projects, Quilibrium is BDFL-driven.
+
+Flexible on its mission – we will not support censorship, we will not compromise on privacy or secrecy, and we will not compromise on users' fundamental human rights.
+
+An unethical launch – we will not engage in token warrants/token sales with investors, not only because a fair launch cannot enable such a thing to happen, but also because an alignment of investors in a business directly to a protocol's token is intrinsically broken (and morally questionable, but this is best reserved for a separate post).
+
+The Prior Work of Proving Work
+
+Feel free to skip this section if you understand Proof of Work and Proof of Stake and don't care to read hot takes about them.
+
+The two largest (economically speaking) consensus models of decentralized networks are Proof of Work – specifically, the variant introduced by Satoshi Nakamoto in the Bitcoin whitepaper, and Proof of Stake – which varies significantly by network. The Nakamoto style of consensus in Bitcoin and other PoW-based networks uses an asymmetric difficulty to linearize blocks of transactions – each miner is churning through a series of random numbers in the header of a block to result in a circumstance where the hash of the block, interpreted as a 256-bit integer, is smaller than the present difficulty target number of the network. The network refines the difficulty as more compute power is supplied to it, such that it results in the production of a new block at a given interval (for Bitcoin, this is ten minutes). In the event the network partitions by way of two miners providing competing blocks, the network converges on a single fork by simply choosing the longest fork, which will inevitably occur.
+
+Proof of Stake is essentially an acknowledgement that Proof of Work becomes a scenario in which the largest sums of money in terms of hardware and electricity dictate the overall state of the network, and directly aligns economic reward (staking rewards) and disincentive (slashing of stake) respective to the quantity of token which is put up at stake to become a validator on the network. Because network partitions are a matter of course in distributed systems, there is still a need for handling forks, and so a common resolution method is to incorporate some means of attestations on blocks, such that the fork with the largest number of attestations is the chosen fork.
+
+Both of these approaches wish to achieve the same result: strong consensus on a correct sequence formed of a larger series of potentially conflicting events (a reformulation of Byzantine Fault Tolerance) – in particular, ensuring that history cannot be rewritten such that a coin could be spent twice. Because network partitions are an assured event, finality is not reached until the network has reached a probabilistic outcome that a competing long-running fork can no longer exist. With Proof of Work, this probability is based on an assumption of economic certainty – that running comparable hash power to rewrite history would theoretically cost more than it's worth, but this assumption proves to be fallacious, as electricity and hardware are not zero sum, nor is it a certainty that hash power will increase or even remain static for a network. When it is no longer economically advantageous to run the miners, they get turned off. Nevertheless, consensus is pure from a decentralization standpoint – in the face of forks, the rules of the network will inevitably converge on one, even if it means having to deepen the block height before accepting a transaction to be unlikely to be reverted.
+
+Proof of Stake's assumptions on the other hand are impure from a decentralization standpoint – in the face of slashing risk, many forms of attacks exist nevertheless, most perniciously, long range attacks. To patch over these problems, there is forced finality "locked in" on a shifting temporal basis. This of course requires some aspect of centralization, as a truly decentralized model would have no means of asserting the validity of one fork over another. The papered over term for this is Weak Subjectivity, but essentially means Proof of Stake ultimately relies on a social trust component to what the correct finalized state is based upon. While there exist other forms of consensus in distributed systems in the adversarial setting, many take on an economic component to improve over the minimum threshold of BFT, which otherwise breaks down when over 1/3 of the network is malicious/misbehaving.
+
+Proof of Meaningful Work is a novel approach, building pure decentralized consensus that increases in security over time regardless of whether the quantity of nodes participating increases or decreases, but incentivizes the network to grow with the pace of technology by using a generational basis of economic policy.
+
+Finding Meaning in Work
+
+There have been previous articulations of a so-called "holy grail" of decentralized compute, where the consensus mechanism was intrinsically bound to actually producing meaningful value to the network, rather than something that involves wasteful energy expenditure (Proof of Work) or only making wealthy token holders accumulate greater wealth (Proof of Stake). This hypothesized mechanism was referred to historically as Proof of Meaningful (or Useful) Work, and has taken on many colors from the various viewpoints that have described it. Here, I will describe a mechanism I call "Proof of Meaningful Work", but further, explain how it is actually meaningful.
+
+To better frame this, let's first consider what work actually is, in the context of Quilibrium:
+
+Storing/retrieving data
+
+Performing mutations on data
+
+For many decentralized networks, retrieving data in a read-only situation is essentially "free" (if the means to interact with the network to perform the read is free, such as a read-only public RPC), unless the read is directly needed to perform a mutation (e.g. a smart contract/program code). Storing data falls under a fixed cost (the data remains permanent), or a rent basis (the data is retained until the rent has been fully consumed).
+
+On Quilibrium, data is stored in a way that removes linkability between the originator and the destination. By consequence, retrieving data cannot be free, unless someone has locally mirrored the necessary data and runs the query protocol themselves on the data set.
+
+In physics, we describe work as a relationship of force and displacement over time through the following equation:
+
+In the context of Quilibrium, our equivalents of force and displacement are settled data and live circuit evaluation, and time is quite literally a formally verifiable passage of time. This relationship is implicitly multiplicative, as the greater the settled data, the inherently larger the live circuit would be. Coming from other networks, this can be hard to wrap one's head around – t is essentially a constant for them (specifically, 1), as the network has no notion of time beyond block heights or the timestamp of the specific blocks, the latter of which cannot be relied upon, and the former you cannot use directly – any transaction must fit within the scope of a single block. For Quilibrium, time is a discrete phenomenon you can depend upon, because it is not time in the sense of a physical clock, but rather, a discrete one. To make this easier to understand, we'll break this relationship down into the core elements: time, settled data, and live circuit evaluation.
+
+Time
+
+Verifiable delay functions (VDFs) are functions which are non-parallelizable – to fulfill the definition, it must take some discrete quantity of steps, perform a sequential operation per step, and return an output value (or values) which prove that the time has been taken. The most important requirement on top of this is that the value is efficiently verifiable. There exist other networks which use some form of non-parallelizable operation to handle some aspect of sequencing (e.g. Solana), such as a hash function repeatedly chaining on itself. The problem with this is that it is not efficiently verifiable – validator requirements for Solana are expensive, and while it has become cheaper over time, it is still a non-trivial cost.
+
+For VDFs, there exist many variants, running all the way back to constructions derived from the RSA-based timelock puzzles (the first two authors of which, were the very same RS of RSA). Many of these use a simple mathematical operation over a specific group that makes it impossible (from a computational complexity standpoint) to shortcut efficiently. Due to the battle-testedness of the IQC-based Wesolowski construction in live networks, we adopted it. This conservative bet proved to be fruitful as later constructions have been found to have problems. How this relates to proving meaningful work, is that we now have a tool to do something very powerful: if an operation takes a greater quantity of work than can fit in the scope of a single interval of the network's time, we can still allow that operation to occur without having to introduce an execution cap.
+
+Still, for some purposes, we need a rough guideline of real world time, and so we have a master clock in the form of a VDF, which should be set to producing a proof at roughly every ten seconds. We then feed this downstream for verifiable randomness beacons and data availability proofs. While VDFs typically are used in succession, they also produce a trail of data in the process of creating the proof that can be carved out for later use in expanded proof compression, such that you can produce a steady stream of VDF proofs, then later compress the entire segment into a single proof so that these individual proofs do not have to be retained forever.
+
+Settled Data
+
+Remember, the goal of consensus is to provide a correct sequence formed of a larger series of potentially conflicting events. Blockchains condense the whole of managed state into logical increments of state transitions, which means a set of millions of non-conflicting transactions must be broken into sets relative to the maximum size of a block. As we have seen in other networks that attempted to use extremely large block sizes to mitigate this downside, this hits intrinsic scaling limits, as the network will naturally centralize to the greatest hashpower capable of also handling the bandwidth pressure. Thus, many blockchains are forced to reduce overall block size to something small enough to reasonably function/replicate¹.
+
+So how does Quilibrium settle data? First, we calculate a shard key. This is comprised of two parts: the global partition index, and the core shard index. The global partition index is simply a variation of a 256-bit one-hash bloom filter (OHBF)² with three selection bits – this is the first portion of the shard key, and then calculate the core shard index, a 65536-bit one-hash bloom filter with twenty four selection bits as the second portion of the key. For faster network filter functionality, the 256-bit filter is expressed as the full 256 bits (32 bytes). To reduce the size of the key to reasonable sizes over the wire, the core shard index is expressed instead as 24 two-byte values of each bit index of the filter (48 bytes) instead of the full filter (8192 bytes)³.
+
+Combinatorially speaking, this partition scheme enables a logical partition set greater than the number of atoms in the universe. I tried to draw a diagram of the relationship of this partition scheme but I couldn't find diagramming tools that didn't immediately fall apart at the proposition, so if you're mathematically inclined, imagine a complete bipartite graph of 256 elements on the left, mapped to 65,536 elements on the right.
+
+Within each core shard index, is a maximum maintainable size of 1GB. This limitation is because we limit polynomial commitment size to degree 65536, where the data is split into a maximum of 64 byte coefficients, and data can be broken into 256 separate polynomial commitments. This turns the network into a maximum total size of managed data of:
+
+(256!/(3!(256-3)!))(65536!/(24!(65536-24)!))(64)(65536)(256) = approx. 1.8765*10^107 bytes.
+
+If humanity ever were to exceed this, Quilibrium will have certainly served its purpose. After then, it could just be expanded by increasing the number of 2 byte values we cleave off the OHBF to further distinguish the partition key with relative ease and minimal communication overhead.
+
+Generating commitments for these polynomials is relatively cheap, and produces roughly 19kB for the 1GB, which can be cheaply rolled into a 256 degree polynomial commitment in of itself (74 bytes), which is shared amongst the same members under the global partition index. Proving over the storage of data is dictated by the active master clock of the network (because again, we have a discrete universal time) as essentially a randomness beacon, picking which polynomial and section of data to prove. Proving the data in a polynomial only requires two EC points rather than log₂(n) hashes, but we thus must prove two: the outer 256 degree, and the inner 65536, so ultimately for four EC points, we can prove any data within the 1GB partition, and commit to it all with only two EC points. If this gets your brain thinking about how you could expand this out to proving the entirety of the network under the global partition index and core shard index, you would be correct (and if you did think this far ahead, drop us a line, we'd love to have you on our team). This brings us to where any data on the network can be proven at the global level with only eight total EC points, or 592 bytes.
+
+Compared to the sheer scale of what a Merkle proof would have to be for 1.8765*10^107 bytes of data (not to mention what kind of machine would have to exist to access it all at runtime), we have shaved off roughly 11kB to prove anything on the network. At the global level, there is only a 256 degree polynomial commitment to manage, meaning only 19kB of data must be universally consistent across the network to have global consensus, and we bound this to ten second intervals. Since all nodes of the network must replicate this 256 degree polynomial, we can actually remove the cost of the highest level of proofs, meaning only six EC points are required to prove anything on the network, or 444 bytes in total. This also gives an accumulation of total size of the network, which will be important in evaluating data pressure. These proofs are going to be important, as they are used to mint tokens earned by validators, as the token application lives within the network itself, and is not an intrinsic part of the protocol. This cost has a more complex management strategy, because there are generational considerations.
+
+Live Circuit Evaluation
+
+Circuits are quite literally the logical gates which represent any code which is executed over the network, which includes query evaluation on the network itself as a higher level intrinsic feature, or stored and dynamic applications. The transformation of logical gates based on the overall circuit complexity and depth results in exponential growth of the number of bits which must be permuted to satisfy the creation of a complete garbled circuit. Circuit garbling itself is relatively cheap to perform if the circuit is already known, but the important factor is unlike assigning fees to specific operations, because everything is broken down into simple bitwise operations already for it, we can simply calculate cost by the bit. To garble an AND gate, for example, you would need to produce a truth table of four different bit values – the outcomes from both parties' inputs.
+
+The Bedlam compiler in Quilibrium takes application code (human readable), and transforms this code in a series of steps, ultimately into a garbled circuit. The intermediate pre-garbled circuit is the output which is saved on the network when someone deploys an application. We distinguish garbled circuit evaluation as live circuit evaluation, as two or more parties must be online and communicating in order to complete this process. Offline evaluation is free, but requires the cost of computing a ZK proof in private. This enables scenarios in which not all parties can or want to be online to execute an application. Settled data produced by this proof, however, still has a cost associated.
+
+Setting a Price on Meaningful Work
+
+By driving down to data availability proofs as the first source of economic incentive, all dependent elements above (the master clock, the data shards, and all the intermediate proofs) are captured in the incentive, otherwise the data availability proofs would not exist, and no token could be redeemed. This is also notably quite different than other networks, as most directly allocate tokens at the sequencing interval, and on Quilibrium, tokens instead must be minted from the application with the provision of a proof. The quantity of tokens rewarded for a proof follows a somewhat less straightforward formula. Retaining data is the most crucial thing to ensure the network continues to function uninterrupted, and while data replication has error correction baked in on the network (this is better covered in a separate article), keeping as much of the total data replicated as possible is ideal, best if 100%, but safe down to 50%.
+
+To achieve this, there must be incentive alignment to those who retain data for the longest, but similar to the scenarios in distributed databases, you have to architect this such that the storage of this data (and for our scenario, the proofs thereof) can tolerate logical shards being separated at any time. In some databases, there is a form of shared architecture where multiple database shards are realistically sharing storage behind the scenes, such as a SAN. Highly performant distributed databases embrace a "shared-nothing architecture", where discrete file storage is distinguished between shards. In the architecture of Quilibrium, we follow suit – data proofs are generated over core shards, so if a node reaches a capacity limit, whether it's CPU, RAM, or disk, the breakdown of migration is in discrete segments of core shards, and so the calculable capacity of your machine is easy to derive, and easy to scale down.
+
+Take an example, where a node is managing 1,000 logical core shards well, but only possesses 200GB of storage. 1,000 shards could represent up to 1,000 GB of data, but probably won't, so if the machine can manage proof generation for the time being, it's able to obtain rewards for those shards. If the size of those shards were to breach the safe limit (~70% of 200GB), the node will start to cull data for maximal reward preservation. If a node operator wished to maintain reward generation for all shards, they would need to appropriately monitor, provision more storage, and if necessary, migrate core shards that cannot fit.
+
+I'm going to drop the word "Tokenomics" now for those who didn't want to read above and just wanted to Ctrl-F for it (but do read it later, it helps explain the next part!).
+
+So now we have a verifiable tool for measuring time, a verifiable tool for proving availability of settled data, and a verifiable tool for proving use of computation. Let's combine this to realize the economic dynamics of Quilibrium:
+
+Generational Determination:
+
+From the start of the network, we calibrate the VDF interval to complete at ten seconds. Over time, improvements in processors will result in faster completion of VDFs. We measure this to create generational epochs, such that when the improvement reaches an exponential increase, we are at the next generation (e.g. 10,000 is roughly ten seconds today, so the next generations are 100,000,000, then 1,000,000,000,000, then 10,000,000,000,000,000, etc.). Today, we are at generation one.
+
+Issuance (Controlled, generational inflationary/deflationary cycle):
+
+Network storage size (d) in GB (ceiling) is rolled into the highest level of proofs, and follows a simple curve, but the curve is generationally (n) bounded and decays over prover group set membership (s, zero indexed) – (1/((d/1048576)^(1/2^n)))/2^(s). This means that when generations are breached, the reward re-spikes to incentivize greater storage provision, which would be aligned with the generational leap.
+
+The ultimate final coin issuance is capped at 2^256-1, which is not obtainable by any foreseeable measure, given the pressure of the curve. Assuming network storage size is low, say, 1GB, the reward issuance for proving 1GB is exactly 1024 QUIL per interval (10s), to obtain the cap would essentially be well after the heat death of the universe.
+
+Issuance is further decayed per prover such that the reward for the same core shard being proven divides by two for every eight provers – this is however bounded to the prover set. In other words, the first eight provers who are proving the core shard (and we know they are in this group, because their proofs have the oldest lineage) get the full reward issuance, the next eight receiving only half that (1/(2^1)), the next eight only a quarter (1/(2^2)), etc.
+
+If a prover were to miss their interval in network-wide prover cycles (not described in this article), they are marked as missed, and on the second interval they are missed, removed from the prover cycle, meaning the ninth member of the lineage set now becomes the eighth, and so on.
+
+Consumption (Supply/Demand Pricing):
+
+Network resource consumption is a globally-measurable phenomenon through the use of proofs, we know at any time how much storage has changed, increased, decreased, etc. as well as how much congestion exists from live circuit execution, creating a dynamically-informed marketplace to evaluate locally-stable supply/demand equilibrium. This price will therefore be variable and set by nodes, but will inevitably converge to stability. The token application offers contingent execution, meaning interactions can be settled in token delivery at their conclusion, yet the total raw resource cost is known up front.
+
+In the event that stable coins proliferate on the network, this also creates the opportunity for nodes to alter which token application they choose to use for circuit execution acceptance, although core data settlement itself must necessarily use the primary network token.
+
+We intend to create an interactive lab on https://www.quilibrium.com/labs/ to demonstrate this overall economic environment soon, so that it becomes clearer through example.
+
+Footnotes
+
+NB: regardless of the litigious nature of someone who claims to have been Bitcoin's originator that extremely large blocks were the plan all along, this differs significantly from the stated point of view Satoshi gave when setting the block size limit to 1MB, arguing that it should increase to the greatest extent that all clients can handle it for the given time.
+
+We originally called this the "bloom index", but renamed this to "bloom filter", because that is what it is, and the term index could be confusing given an index on a bloom filter is a thing itself – the specific bits on the filter).
+
+As an implementation detail, the 24 values are not required to be sorted. Clients may choose to sort them, but it is not necessary.
+
+Special Thanks

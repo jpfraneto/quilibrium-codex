@@ -1,0 +1,129 @@
+Eli5 quilibrium - Cassandra Heart
+
+I do not accept "it's too complex to understand" as a reasonable state to be in, because 1. I don't believe that anything is too complex to understand, as 2. it only means I have yet to find the right way to convey the information succinctly enough. - Q Rude FAQ
+
+If previous articles and their use of cryptography and math-specific terms like "polynomial encoded vector", "KZG Proof", "VDF", "Asynchronous DKG", "MPC", etc. are unfamiliar and make you feel like understanding Q's concepts are a triple PhD effort, this article is for you.
+
+This post will attempt to explain Q's underlying architectural components in terms a five year old can understand (no math, just metaphors), but we'll also step it up in accuracy to a level a high schooler could also understand (algebra, a bit intermediate but with effort can be understood). Each answer will be marked ELI5 and ELIHS (Explain Like I'm a High Schooler) with its own respective story. This will omit quite a few details, but hopefully will help connect ideas to real world concepts so that the broader picture becomes clearer.
+
+LEVEL 1: COMMUNICATION
+
+ELI5
+
+Imagine our tree house club wanted to talk to other tree house clubs, how would we do it? Most of us have played the telephone game with tin cans and string, so imagine if you and all your friends set up a bunch of strings across the tree houses – now you can all talk to each other! Suddenly you can play games across the forts – Battleship, go fish, anything you can communicate.
+
+But what if another tree house decided to attach a hidden string to your line and listen in? You write a secret codewords book, and give a unique one to each of the forts you want to communicate with – that way, only they can talk to you, anyone trying to listen in can't make sense of it. But games are often unique, and even if they don't know that CRAB PILOT BISCUIT BANJO = "you sunk my battleship!", they can pick up on your communication patterns to figure out what you're talking about, especially if those code words don't change with every use! So, you do two things: you make your codewords book really big (bigger than you'll ever need!), and you have a special word that says "this is the actual end of my message", then you fill in your message with extra random words so that every message you send over the tin can is exactly the same length. Now, nobody can tell what you're talking about.
+
+But they do know who you're talking to, and when! So let's solve that problem. First, let's take our original message: we know who we want to send it to, but we want others to not know this. So we create a brand new word, totally unique to our tree house and the destination, that helps our friends find our message. Then, we take our message that we translated by codewords for the recipient, put this special destination on it, like putting an address on an envelope, and then use another set of codewords, for another tree house, to translate all of this again. We do this a few times, using the destination of the previous tree house as the new address, like putting an envelope inside another envelope, but with words. Now it has a final resting spot, that only our tree house and the intended tree house knows how to find. The intended tree house comes up with their own brand new word, also unique to our tree house and theirs, so that nobody can try to watch where messages "meet in the middle" to figure out who is talking to whom (Envelope Encryption/Onion Routing).
+
+ELIHS
+
+We've got a group of friends who like to meet once a week and catch up on the latest gossip, but you've all got really busy schedules with extra curriculars, so finding the right time to meet, and know if it's even worth meeting (last time Dave just wanted to drone on about his breakup and it was a huge bummer and totally his fault anyway) is challenging. Teachers are really strict, and if a cellphone is confiscated they're reading the conversation out loud, which was super embarrassing for Dave (man he's gotta stop it with the TMI).
+
+One of the friends, Sally, is a math genius and heard about this crazy trick using the formulas we just learned about in algebra – those equations that go y = 18x + 2 and so on. Basically, if we all come up with our own random coefficients for the equation (the 18 and 2 in the equation), and each one of us is assigned a unique number that we plug in for x (and we all know each other's unique number for x), then we can share the y value for each person's x value to each person, individually (e.g. if my x = 4, everyone is going to give me their y value when x = 4).
+
+Once everyone has their specific y values (samples), then we add up all of the ones we got to a single y value, and can team up, where any two of us can share our y values and find out what y equals when x is zero (because we're just solving the equation to find that last coefficient):
+
+y = Bx + C
+
+y = 372, x = 4 :: 372=4B + C :: B = (372-C)/4
+
+y = 182, x = 2 :: 182=2B + C :: B = (182-C)/2
+
+(182-C)/2 = (372-C)/4
+
+182-C = 186-(C/2)
+
+-4 = C/2
+
+C = -8 :: y = B(0) - 8 :: y = -8, x = 0 
+
+Now that we all know what y is when x is zero, we have a secret number to encrypt our group messages with that nobody else knows. (This is not actually safe, you need proper cryptography to do this right, but this is the underlying math concept that makes distributed key generation work)
+
+Of course, what if a teacher finds out the number? So we bump the secret number with every message, coming up with a new random non-zero number. If we get messages out of order, we can try the multiplication in a different order to figure what the message order was supposed to be, and so long as nobody keeps every previous message, there is no way for someone stealing our phone to figure out what the past messages were (Forward Secrecy). But once they have it, how do we stop them from learning our new messages?
+
+We do that same math trick again, frequently. This provides something out of band that makes future messages unable to be decrypted by prying eyes that snagged a phone (Future Secrecy). Sally's math skills are scary.
+
+But what if you wanted to just talk to one person, and you didn't want the rest of the group to know? This is where there's even more safety in numbers. The group conversation gives you a place to do an envelope technique, where you create a unique number for the pair of you to talk and encrypt it just for them, mark the message with the recipient, then take that whole message, encrypt it for someone else, mark it with their unique number, then take that whole message again, encrypt it for someone else, and mark it with their unique number, and send it to the outer-most recipient. (Envelope Encryption/Onion Routing) Each envelope has to be decrypted and sent before the recipient message is available to the recipient in the group, but it gives you a few degrees of removal before it appears in the group, and only the recipient can decrypt the final message.
+
+Of course, if anyone watches the group activity, it wouldn't take much to figure out you're talking to that one person given who is sending messages around the same time as they appear in the group, especially if you end up using the same first hop by random chance, so you need one more indirection. Messages cannot make it to the group conversation until a specific number of them have been received by a final hop. In other words, the last hop has to batch them all and send them all at once. That final hop also has a responsibility to scramble the order of those messages when they relay them to the group chat. Thankfully, our algebra class just learned about matrices, and a square matrix equal to the number of messages with only one 1 at any given combination of row and column, rest are zeroes, will let you scramble the order efficiently (Random Permutation Matrix, extremely simplified). With this trick, there's no way to figure out who's talking to who by watching the timing of the group chat.
+
+LEVEL 2: STORAGE AND Computer
+
+Each tree house has a lot of stuff in it, sometimes the same stuff others have, sometimes it's things only you have (like that cool four foot tall robot), but if others knew what you have, they might try to sneak into your tree house and steal it. What if you were staying over at a friend's tree house and wanted to show off your robot? How can you prove it's yours, or that you even have it, when you're away from your home base?
+
+Let's take a moment and pretend that there is always someone at every tree house, so the next steps are possible. You could send a message back to your tree house and say "send the robot over to Bobby's tree house by bucket", and a bucket holding your robot would come flying over the wire, but there's only one of these, and you don't want to lose it in transit, like when the last baseball game sent a ball into Mrs. Benefield's yard and it was lost forever to her very angry dog. So instead, someone in your tree house takes a polaroid of your robot, and sends that over by envelopes inside of envelopes, but this time, actually using envelopes along with codewords, zipping from tree house to tree house, until it hits the one you're at.
+
+But that's just a photo. It could have been taken at any time. How do we know that was yours and not a photo you got from another tree house? To prove this, Bobby comes up with a few random words ("paraglider rabbit snake beach"), gives them to you, and you send a message back to your tree house: "send a photo of the robot over to Bobby's tree house, include 'paraglider rabbit snake beach' in the photo", and a few moments later, the envelope arrives, ready to prove you are indeed the coolest kid in the neighborhood.
+
+But there's a small problem in this. If anyone can ask your tree house for things that you might have, they can figure out what you have. Let's imagine instead you are really organized, and have everything packed away in chests that are bolted to the floor. Each chest has its own key, and you have a big key ring you carry around with you so only you can open the chests (and so nobody can just climb into your tree house and walk away with your stuff!). This time, you send the key with no message of the contents inside the chest or which chest to open, only saying a few of the chests it might be in. Then your helper at your tree house will have to try out the chests until they find the right one, and send over the photo, along with closing the chest and returning your key.
+
+This would almost work, but now whoever is currently in your tree house knows which chest it was, and what's inside it. But we're close to the answer. Let's say instead, each chest actually has a camera inside it (with a flash, because, y'know, it's dark), a slot for a message to poke through so it can show up in the photo, and the camera actually puts the image in the envelopes for you. The key only activates this contraption, and you end up with an envelope (with the photo inside it), noting which chest it was. If the key wasn't meant for the chest, the photo looks like TV static. They have to try all of the chests you specified, get a bunch of envelopes back, and stuff them all (with the key) inside a bigger envelope, inside another envelope, and so on, and send that back. You get back all the envelopes, but you know which one is the right one, open it, and show the proof of your super cool robot (Oblivious Transfer and Lookup).
+
+So you've got a super cool robot at your tree house, you proved it, but how do we know it's your robot, has been there for all six weeks you've been bragging, and not a friend's that was there at that exact point in time to help you look cool?
+
+Let's revisit our tree house network. One way we can know that the tree houses are connected is if they all agree to a code phrase at a specific point in time. Let's say, every day, these tree houses send out a random word to prove this, that is the previous days word, encoded using the special code books, so now it's a new one. Each tree house does this, and once everyone has sent theirs, you sort the words in the order of each tree house owner's name, alphabetically. Now you have a big random phrase. And those chests all have slots for random phrases. And you have a key to take a photo of each item in each chest. So once a day, you create a big stack of envelopes, proving you have those items. So now, you can ask your tree house to send over a copy of those envelopes for six week's worth of time, and now you have your proof that those six weeks of bragging rights were rightfully yours (Verifiable Delay Function, very simplified).
+
+But wait, couldn't you just save those words and do that all in one step to fake it? We change the process a little bit here. Instead of sending over those envelopes all at once, these envelopes are sent every day. Without the code to decode the contents of the envelope, it's just random noise, but when we're over at the other tree house, we have the power to decode the contents and prove how long it's really been. Now your six weeks of bragging rights are proven to every tree house in the network, and nobody even knows it until you decide to show it (Proof of Meaningful Work).
+
+ELIHS
+
+Let's say you want to ask Stacy to prom, but you're scared she might say no. She's part of your group chat, and knows how to send messages, but she could totally reveal your question and make fun of you and the embarrassment would be too much to handle! Sally's no quitter when it comes to cool math tricks, so she devised a plan: rather than just let people live in social purgatory, why not use some simple arithmetic to make it so everyone says who they'd ask out, but only if that person also says yes!
+
+Algebra class has come in clutch again, and we've learned the concept of prime numbers, exponents, and modulo arithmetic (a.k.a. clock math), so we all have the right tools in the toolbox to pull off Sally's latest stunt. Here's how it works:
+
+Sally comes up with two prime numbers (p, q), one much smaller than the other (In cryptographic terms, this mathematical trick would require a 256 bit prime and a 3072 bit prime) and the larger, subtracted by 1 (p-1), must be a multiple of the smaller (q). Then, a value (g) is calculated from the formula g = 2^((p-1)/q) modulo p. Sally shares p, q, and g with everyone in the group.
+
+Now, everyone has to come up with their own random value (a) for each person, and use exponentiation and modular arithmetic to calculate a value they share (A):
+
+A = g^a modulo p
+
+Between all participants, they each send a message to the group with their A values for each person. Then, once everyone has sent their A values, each person calculates a new random value (b) and responds to each individual with a yes or no, but in a special way (B):
+
+if no, B = g^b modulo p
+
+if yes, B = A * g^b modulo p
+
+Receiving this B, the original sender of A must encrypt their answer with the following key
+
+encrypt the response to B saying "no" with key = B^a modulo p
+
+encrypt the response to B saying "yes" with key = (B/A)^a modulo p
+
+and send both values.
+
+Receiving these encrypted messages, the sender of B must calculate a key = A^b modulo p, and attempt to decrypt both with the key (only one will work), and then they will have their answer. The sender of A remains blind to which choice B made, and B remains blind to whatever the other message said. A perfect way to avoid any embarrassment, except personally feeling let down in the worst case. (Oblivious Transfer and Lookup) 
+
+Now everyone in the group is super chill about properly deleting messages, but what if there was something that folks needed to hang onto for a certain period of time, and prove they still had it? That encrypted message may be super long, like another embarrassing TMI outburst from a former member of the group. We might want to hang onto that for old time's sake. How do we prove we still have it, and kept it this whole time?
+
+Sally once again had a math approach for us all: turns out, squaring a special kind of number you'd see in that quadratic formula, that we all had a terrible sing song trick to remember, can't be done quickly. It is, as it turns out, very slow to do, slow enough, that you can use it to measure the progress of time, and with no shortcuts. Only once that value has been calculated, can you quickly verify it is correct. This trick only required a few more clock math moves plus the notion of imaginary numbers (numbers with a square root of a negative value), and it was to calculate what is called an imaginary quadratic integer. Using a formula to square these special kinds of numbers, we can just keep squaring, forever. The output values at given times allows us to produce two values, the output squared value for a given number of iterations (squarings), and an intermediate value produced over the series of squarings to quickly verify the output value and duration taken.
+
+All we need is an input, and boy is that TMI outburst some input. Running this through the squaring function, we can prove how long it's been around by just taking an output sample of this math trick. (Verifiable Delay Function).
+
+But maybe we have a lot of these that we're hanging onto, and proving all of that is simple, but it takes a lot of info to verify, because you need not only the proof output, but you need the whole TMI outburst being proven over. What if you want to prove you've held onto it, only show a small portion of it, yet still prove you still have the full message?
+
+"Sally is burying us in math, maybe that's the next outburst", you think to yourself. But right on cue, Sally does have an answer: That trick we used earlier to create group keys has a similar trick for proving sections of a message. If you take equal, small chunks of the message, and treat it like a number, you can use that as a y value, it's chunk number as an x value, and produce a formula that lets you specify the chunk number to get the chunk of the message you want. Now you can take that formula, and prove time over those values (coefficients) instead, and use the output number to select a random chunk to reveal (KZG Proof) – you have both proof you've held onto the data for a given amount of time, and you can exclusively reveal any section of data you need or whether it's changed (Proof of Meaningful Work).
+
+"I swear to god if she says 'Polynomial' again..."
+
+(Important note: KZG Proofs rely on an additional computational hardness component that is omitted from this ELIHS)
+
+LEVEL 3: HYPERGRAPH
+
+Your cool treehouse network has evolved into quite the machine: envelopes shuttling along wires, locked chests and cameras and keys, but there's a lot of work people in the treehouse have to put in just to find where things are, and remembering all of that, keeping track of it all?
+
+To fix this, each tree house has another small set of chests, these strictly hold the details of where your chests are, what's inside them, which key on the keyring to use, if something's on loan at a neighbor's tree house, or what your scores were for battleship.
+
+It's almost like a little treehouse inside your treehouse, just for you to ask questions about all of the above. The different ways all these things relate become scraps of paper that are stored in the chest when things change – your weekly Battleship tournaments between the other four tree houses on your cul-de-sac are now stored in a chest, and your mini treehouse chest tells you that this chest exists, its name, and that it is related to Battleship, you and the other four tree houses. 
+
+Just like when you were proving your robot existed, this chest also takes strips of paper for proofs, but this time, you're using this process to look up the existence of other chests – useful for you, and anyone else who you allow to ask for this info. The relationships this info represents has taken this little network of tree houses and chests (a graph), and expanded it to include more than two points with one edge – you talk from tree house to tree house (graph network), but your info creates a collection of multiple points (hypergraph store).
+
+This simple solution suddenly makes this tree house network so much faster and fun - now things are back to the speed they were at the beginning, it no longer feels like a chore, and you keep all the benefits you added to the safety and privacy of your tree houses!
+
+This gossip ring has grown to the whole school by this point, even teachers are starting to use it! Sally realized that the prom question math trick applied to any kind of computer application by taking the entire application's code and turned it into the same random number exchange trick (Garbled Circuits) and built out a way for people to efficiently store their information privately, prove they still had it, and built even more complex tools, like a way to demonstrate that Kyle never helps on any group project he's assigned to by having each group member show what they individually contributed over the time of the project and how it collectively made the final group project by association. Empowered with the ability to build small, simple functions that could handle encrypted data like it was unencrypted, suddenly the whole school was sharing small app snippets they could mix and remix to make their own clique's chats livelier, embarrassing topics less embarrassing, or just cooler, and kept their privacy the whole time through (Multi Party Computation).
+
+But this made for a lot of information to store, and worse, slow to find, so Sally went back to her math class learnings for one last insight, and thought: "all of this looks like a graph, but if we could encode a little more information about the vertexes, so that if there's more than two of them, we can still recall them all as one group like an edge, we could efficiently retrieve any piece of information we wanted!" Thankfully her math teacher was willing to throw a small college-level lesson her way, and introduced her to the concept of Hypergraphs, which confirmed her theory that such a thing is possible, easily encodable, and set her down the path of choosing a double major in Computer Science and Mathematics.
+
+Put it together: Quilibrium
+
+Quilibrium's technologies are not unique – many of these things are inventions that existed in some way in other projects or papers, much like how Bitcoin did not contribute anything new in terms of cryptography or data structures – the novelty was the right combination of technologies which unlocked the entire field of decentralized finance. With Quilibrium's combination of technologies, the scale and speed of applications in a decentralized context becomes so much broader than simply finance alone, while still enabling decentralized finance to flourish.

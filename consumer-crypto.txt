@@ -1,0 +1,17 @@
+The Alternative Thesis of Consumer Crypto - Cassie Heart
+
+1) What
+
+"Consumer Crypto" is a phrase overloaded in the space, but many have converged on the same general definition: making crypto as ubiquitous as other elements of the web for regular consumers. This has many parallels to the early days of the hobby computer industry, where many businesses (small and multi-billion dollar alike) tried their hand at defining the destiny of home computers – resulting in extremely bizarre attempts ranging from the Kitchen Computer to hand-wirewrapped breadboard kits loaded with BASIC and a hastily assembled programming manual.
+
+Yes, they really said this.
+
+All of these companies jockeying to make humans fit into their ideas of home computers ultimately lost out to the few who understood that you have to make home computers fit into the idea of humans. The same could be said for crypto today: Account Abstraction, paymasters, gas limits, "gigagas" – all these ideas attempting to fit an idea of human needs into a crypto shaped hole.
+
+My talk introduces the Alternative Thesis of Consumer Crypto: countering this era's version of Big Blue with a complete reworking of how crypto should be, challenging us to Think Different as we did four decades ago – making crypto be what consumers want, rather than the other way around, and demonstrating what that actually looks like, contrasting against what it's looked like for the past few years.
+
+If you've read some of my previous works (https://paragraph.xyz/@quilibrium.com/doom-on-frames and https://paragraph.xyz/@quilibrium.com/an-epitaph-for-blockchain), you'll get a sense for what I'm going to cover, with some very big surprises in the demonstration.
+
+2) Why
+
+Quilibrium is as much a redesign of modern crypto as it is a counter culture movement to return to the origin of the space: pro-privacy, pro-freedom, with no way to let in corporate centralized masters or censors. And true to that ethos, while we are a sponsor of FarCon, I am pitching this as a lightning talk at FarCon, for you to decide to hear me, rather than having a dedicated unquestionable timeslot, and I would be greatly honored to have your vote.

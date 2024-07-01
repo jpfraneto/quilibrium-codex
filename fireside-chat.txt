@@ -1,0 +1,51 @@
+Fireside Chat: PoMW, Multiproofs, and 1.4.19 - Cassandra Heart
+
+Previously, in Proof of Meaningful Work, we reviewed the justifications for the novel consensus mechanism, and the formula regarding its tokenomics. A lot has happened between that post and today, but in just the last four weeks: 1.4.17, and existing rewards have gone live for access via our bridge, 1.4.18 introduced mini-PoMW proofs and rewards, a network dashboard, a status page, now on the cusp of 1.4.19, which brings in multiproofs, and on top of all of this, in the midst of a battle against GitHub, who proved how important our mission is by doing the one thing to us which we are trying to put an end to on the web: deplatforming. With so much of this happening so quickly, and Quilibrium being built by so few, it's lead to a subtle disconnect between simply running nodes and actively building the protocol – largely in the form of questions:
+
+What was mini-PoMW and why is it so computationally expensive?
+
+How has this changed rewards?
+
+How has network state grown (and in relation, how does this impact rewards moving forward)?
+
+What's a multiproof?
+
+What's new in 1.4.19?
+
+By the end of this article, you should have a good understanding of all of the above.
+
+What was mini-PoMW and why is it so computationally expensive?
+
+Mini-PoMW was the first instance of the core-shard-driven time proof model, testing out the variability of PoMW's verifiable delay function (VDF) in its deployments, catching any issues ahead of time with the parallelization (and indeed, we did – go's GC caused significant contention across the goroutines, resulting in us separating the data workers out as separate processes), before introducing the data/state proofs as part of the full PoMW model. For those who have been following along for a while, this naturally produced a strong uptick in compute – this may be a proof of meaningful work model, but it is still in the family of proof of work. 
+
+The difference between traditional proof of work can be drawn in terms of outcomes following incentives. With bitcoin style proof of work, nodes are competing against each other by churning through hashes to find hash outputs in a race to obtain the "winning" number, resulting in overwhelmingly outsized power. It's easy to see:
+
+Above, the number of reachable bitcoin nodes – but in terms of mining power:
+
+With the fastest mining rig running at 355TH/s, and the peak hash rate of 657,252,698TH/s, it would require a minimum of 1,851,416 of those mining rigs to reach the peak, but diversity amongst miners exists, and so that number is even higher in reality – this produces a dynamic where for 17,287 "logical" nodes, there is roughly 11 mining rigs for every public node, but this is of course a nonsense value, as 90% of mining power is dominated by eight mining pools:
+
+The hypercompetitive nature of traditional proof of work results in a consolidation because needless power spend is competing against needless power spend, with a race to the bottom where only a handful of victors can even win.
+
+Proof of Meaningful Work, on the other hand, does not have a consolidating force: VDFs may become faster with faster hardware, but they are not parallelizable, and have a mandatory minimum degree of replication, resulting in a cooperative race to cover data for the network rather than a competitive one. Our publicly addressable node count shows this consequence:
+
+How has this changed rewards?
+
+Rewards now follow the PoMW formula, with a slight caveat – with 80k peers, but well over 800,000 accounts/bridge addresses which would be proven over, no single peer can prove all of the data directly through individual data proofs, but with a minimum replication factor of 24 (3 core shards * 8 primary provers), the network is getting closer to homeostasis to meet that replication as the core counts for a given prover run as high as 384. What was originally assumed to be a sigmoid curve leading into the PoMW formula has instead in the span of two weeks grown closer to the measure of what is needed to avoid multiproofs – but not quite yet. Meeting that measure has a slight thorn – if the network state grows beyond that limit, multiproofs would necessarily return. While 2.0 significantly increases the likelihood that state growth will move back into needing multiproofs, we are still a few releases away. For now, this means the network produces an issuance rate of 240 QUIL per interval (10s) by virtue of the multiproof division needed to meet replication (960 QUIL being the actual issuance rate for the given network state, divided by the quantity of shards for a given proof – 4).
+
+How has network state grown (and in relation, how does this impact rewards moving forward)?
+
+Network state for now consists of two values, which are being updated in between releases until they track on the fly with 2.0:
+
+New accounts on the network
+
+State information for the bridge (active addresses on Ethereum)
+
+This has collectively reached roughly 800,000 in total count, and is increasing at a rate of 40,000 each week. The increase in addresses corresponds to an increase in network size, which over time reduces the reward rate, per the PoMW formula.
+
+What is a multiproof?
+
+Unlike the KZG multiproofs outlined by Dankrad Feist, the multiproofs being referred to here are more than just KZG – we combine the KZG multiproof strategy for data, but with the inputs for multiple data fed into the VDF – in other words, because there are fewer nodes and cores than there exist core shards needed for the network, the KZG proofs must necessarily be fit in aggregate such that multiple core shards are proven by a single VDF invocation. The consequence of a multiproof is that they reward less than if a node were to prove the individual core shards, but are necessary for as long as the network has fewer cores available than can meet the replication required by the protocol. As bitcoin has demonstrated, incentives follow outcomes, so this is expected to produce a net result where node power meets the sufficiency of the replication factor required.
+
+What's new in v1.4.19?
+
+v1.4.19 brings in some performance improvements, and also begins to integrate the KZG component of the proofs into PoMW. Additionally, and most critically, nodes will begin retaining these proofs such that they can keep track of their own rewards, meaning nodes will always have an accurate POV of accumulated rewards for the duration of the update. As a consequence, the one most important thing for node operators to take away from this is they should no longer clear their data store, because the store is necessary to claim said rewards when 2.0 goes live. Equally, it is important to retain backups.

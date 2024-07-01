@@ -1,0 +1,49 @@
+AN EPITAPH FOR BLOCKCHAIN - Cassandra Heart
+
+Today is an important day in computer history. For those who have talked to me for more than a minute, you've probably heard me compare the crypto industry to the hobbyist computer industry's path, drawing comparisons across the board. I want to take a moment and reflect on this excerpt from Jobs' Macintosh unveiling, on the 40th anniversary of this day, January 24, 1984:
+
+It is 1958. IBM passes up the chance to buy a young fledgling company that has invented a new technology called xerography. Two years later Xerox is born and IBM has been kicking themselves ever since.
+
+It is 10 years later. Digital Equipment DEC and others invent the minicomputer. IBM dismisses the minicomputer as too small to do serious computing and therefore unimportant to their business. DEC grows to become a multi hundred million dollar corporation before IBM finally enters the mini computer market.
+
+It is now 10 years later the late seventies in 1977, Apple a young fledgling company on the west coast invents the Apple II, the first personal computer as we know it today. IBM dismisses the personal computer as too small to do serious computing and unimportant to their business.
+
+The early eighties, ’81, Apple II has become the world’s most popular computer and Apple has grown to a $300 million dollar company becoming the fastest growing corporation in American business history with over 50 competitors vying for a share.
+
+IBM enters the personal computer market in November ’81 with the IBM PC. 1983: Apple and IBM emerged as the industry’s strongest competitors each selling approximately one billion dollars worth of personal computers in 1983, each will invest greater than fifty million dollars for R&D and another fifty million dollars for television advertising in 1984 totaling almost one quarter of a billion dollars combined, the shakeout is in full swing.
+
+The first major firm goes bankrupt with others teetering on the brink, total industry losses for 83 out shadow even the combined profits of Apple and IBM for personal computers. 
+
+It is now 1984.
+
+It appears IBM wants it all. Apple is perceived to be the only hope to offer IBM a run for its money, dealers initially welcoming IBM with open arms now fear an IBM dominated and controlled future. They are increasingly and desperately turning back to Apple as the only force that can ensure their future freedom.
+
+IBM wants it all and is aiming its guns on its last obstacle to industry control. Apple will big blue dominate the entire computer industry? The entire information age? Was George Orwell right about 1984?
+
+Today, we celebrate the first glorious anniversary of the Information Purification Directives. We have created for the first time in all history a garden of pure ideology where each worker may bloom secure from the pests of a contradictory truth.
+
+– Steve Jobs
+
+On that day, the Macintosh was revealed – the amalgamation of research and development by a team willing to think beyond the norms, think of the human behind the screen, think what could be, not what is.
+
+Crypto has been tethered to the spectre of ideas lingering behind from a person who did not wish to be identified. Perhaps they are still here today. But I think often about how the course of events have been, and whether or not it aligns to the original ethos of crypto. And there are indeed many great thinkers, but much more cargo cultists – refusing to think of what could be. That we must adapt what exists, rather than move beyond. Satoshi drew Bitcoin from the research at the time. Is blockchain the hobbyist computer? Or is it the minicomputer the IBM of today refuses to move on from?
+
+The Apple ][ was indeed an advance beyond the hobbyist phase – a full kit (or later, fully assembled) with optimal parts, not a breadboard with a handwritten guide on wire-wrapping. IBM could not have guessed the hobbyist phase would become something real, because there wasn't a meaningful product.
+
+Apple reinvented home computers to be something useful. To do something meaningful. To let people do work. And then once more rewrote the script on what it meant to be a home computer when they introduced the Macintosh.
+
+And to wit – the parallels are very present in this:
+
+ZK tech
+
+MPC
+
+VDFs
+
+Data Availability Sampling
+
+Apple took the research of Xerox and brought it home, with the mouse, the desktop, a human-oriented GUI. IBM? well:
+
+When I hear people in this industry convinced that entrants – from before the research explosion took off – are the ones to build on, the ones that will be there for the future. I see this machine. I reject your thesis. Blockchain is a stepping stone – A hand-wrapped breadboard hobby kit. A minicomputer.
+
+And this year, in just a few weeks, I believe you will understand what I mean when I echo the history and encourage us to Think Different.

@@ -1,0 +1,202 @@
+QUIL BUILDERS GUIDE - Cassandra Heart
+
+The explosion in popularity around Quilibrium is truly one of the most awe inspiring moments to me – I've been working on the technology and iterating on it for several years at this point, so it's amazing now that so many share the same excitement I've had this whole time. One particular question I've gotten from people is usually followed by another: "What can I build on it?" and then "How can I build on it?" I intend this guide to answer both questions, but it starts with the same answer I've given since I started work on the latest iteration of the MPC runtime over two years ago: just write go.
+
+What can I build on it?
+
+Philosophically, Quilibrium's mission of securing every bit of traffic on the Internet is the kind of mission that is an infectious one, ergo, the end goal is that the answer to that question is: anything and everything. But pragmatically, no library, service, protocol or application develops traction without having reasonable initial use cases its better suited for. A great example of this is Postgres – traditionally a standard SQL-based RDBMS, but is Swiss army knife-d to the point of supporting not only many other practical forms of data stores, but also entirely different domains: message queues, scheduled tasks/workers, and with the right plugins, even as unexpected things as web servers.
+
+Architecturally, it should be no surprise then that Quilibrium's most intuitive base use cases revolve around the manner in which data lives on the network: fetches and stores of structured data. How does this naturally fit into the most "obvious" (in this case, to someone who's been building it for seven years) emergent patterns?
+
+Global Object Storage (S3)
+
+Storing raw data in buckets is something that almost every application needs:
+
+Single Page Applications use it for hosting
+
+Content store for social media (long-form posts, images, etc.)
+
+Package repositories store many discrete, immutable bundles
+
+Backups of a client-facing application's data
+
+This list would get impressively exhaustive if fully enumerated, so it's easier to describe in parallels – what people use S3 for, would work well very simply on Q.
+
+Key-Value Stores (Elasticache/Redis)
+
+Even for applications not needing to handle storage of large objects typically do need some state stored, and the storage approach equally scales down into the discrete key-value level. The network is maintaining a hypergraph as the storage medium, and most computer science students learn and prove for themselves in their studies how easily translated graphs and KV stores are between one another.
+
+Data isn't the only driver for utility, though, and there are very compelling use cases to be had as a fabric for compute itself. The hypergraph is an intrinsic: a term used in Q development that somewhat parallels a "precompile" in Ethereum parlance, or as directly borrowed from compiler theory the notion of functional intrinsics – hardware-optimized opcode substitution, like substituting an entire matrix multiplication routine with a single opcode that handles it for far fewer CPU cycles. Intrinsics are a property of the execution engine of Quilibrium, for the purpose of doing things more efficiently with MPC than "the hard way" by explicitly compiling a routine into a garbled circuit. There are many realizations of this model in the wild – entire families of threshold signature algorithms exist for ECDSA because there are mathematical "shortcuts" that do the arithmetic faster with the same level of security without having to build out the full ECDSA in garbled circuits. Being able to compose intrinsics together with garbled circuits in intuitive ways is the core strength of Quilibrium's execution engine, and by doing that, it enables other categories of applications implicitly:
+
+Discrete Functions (Lambda)
+
+Code is data, and deploying code to be executed on Quilibrium is a matter of simply storing it following the structured format expected for code. From a tooling perspective this is largely invisible, it is simply a deploy command. And the structure of the deployment object is the compiler's output – essentially like an intermediary language suited for garbled circuits. The code itself? For now, with other languages to be added later, is basically Go – things like syscalls, nondeterministic functions, certain types of I/O are not supported, but a large subset of the language itself is, making it very easy to port over large amounts of application code with minimal change.
+
+Key Management Service
+
+With a straightforward medium for MPC applications, lending itself towards "obvious" conclusions, MPC-based signing is an easy demonstration of the network's unique value propositions. It is indeed so easy that it will be the first example in this document.
+
+So, that being said:
+
+How can I build on it?
+
+When I've been saying "just write go", there's obviously the small caveat aforementioned, but we have a cohesive example of a token application on our respective Labs page that shows more broadly a use of weaving in both the intrinsics of the hypergraph and additional intrinsics like the augmented EdDSA. But to illustrate the simplicity of saying "just write go", let's sketch a very simple MPC signer:
+
+package main
+
+import (
+	"crypto/ed448"
+)
+
+type PartyInput struct {
+	message   [64]byte
+	keyShare  [57]byte
+}
+
+func main(a, b PartyInput) []byte {
+	equal := true
+	for i := 0; i < len(a.message); i++ {
+		// verifies both parties agreed to sign the message
+		equal &= a.message[i] == b.message[i]
+	}
+
+	var signature [114]byte
+
+	if !equal {
+		// returns an empty signature
+		return signature
+	}
+
+	var key [57]
+	for i := 0; i < len(a.keyShare); i++ {
+		key[i] = a.keyShare[i] ^ b.keyShare[i]
+    }
+
+	return ed448.Sign(key, a.message, "")
+}
+
+There are a few small differences from regular go in this small example that are worth calling out:
+
+The main function declares the parties for MPC (instead of bastardizing os.Args)
+
+crypto/ed448 isn't an official library – but it is added to the built in libraries for this language given its heavy presence on Q
+
+The arguments to the main function must be explicitly sized
+
+Explicit Sizing
+
+That last one is probably the most important observation when building applications for Q – you can use structs for your input variables between parties, but you must size them for the garbler. There are a few minor edge cases, but this is the most important one. This variant of Go also enables something that Go 2.0 might do (given Rob Pike's proposal): arbitrarily sized integers. If you need a four bit int: use int4, if you need it to be 2048 bits: use int2048, if you need a three bit uint: use uint3.
+
+Important Caveats
+
+The most crucial thing for building an MPC application is to not produce behaviors that can leak inputs: early termination (note how we run through all bytes of the message which both parties must agree to and know before we return the failure condition), conditional termination (note how we don't take a public key value and verify the private key corresponds to it – that could leak bits of the private key)
+
+Packages
+
+Most applications do not consist of a single main entry point function and nothing else – this is no different. You can deploy code as entrypoint functions or as packages which you can include in your code, just like regular Go.
+
+Storing/Retrieving Data
+
+Interacting with the hypergraph itself is also extremely straightforward, using a small collection of types that the provided intrinsics can wire together into parallel fetch/store calls for you. To illustrate, let's take the more advanced example from the Token lab for the CreateTransaction function:
+
+func main(request CreateTransactionRequest, relay hypergraph.Network) (hypergraph.UpdateExtrinsic, hypergraph.UpdateExtrinsic, hypergraph.CreateExtrinsic, bool) {
+  coinBytes, ok := hypergraph.RetrieveExtrinsic(request.OfCoin)
+  if !ok {
+    return hypergraph.UpdateExtrinsic{}, hypergraph.UpdateExtrinsic{}, hypergraph.CreateExtrinsic{}, false
+  }
+  coin := UnmarshalCoin(coinBytes[:1088])
+
+  acctBytes, ok := hypergraph.RetrieveExtrinsic(coin.OwnerAccount)
+  if !ok {
+    return hypergraph.UpdateExtrinsic{}, hypergraph.UpdateExtrinsic{}, hypergraph.CreateExtrinsic{}, false
+  }
+  acct := UnmarshalAccount(acctBytes[:89])
+
+  msg, err := hypergraph.HashExtrinsics([3]hypergraph.Extrinsic{request.OfCoin, request.RefundAccount, request.ToAccount})
+  if err != "" {
+    return hypergraph.UpdateExtrinsic{}, hypergraph.UpdateExtrinsic{}, hypergraph.CreateExtrinsic{}, false
+  }
+
+  verify := sign.Verify(acct.PublicKey, msg, request.Signature, []byte{})
+  if !verify {
+    return hypergraph.UpdateExtrinsic{}, hypergraph.UpdateExtrinsic{}, hypergraph.CreateExtrinsic{}, false
+  }
+
+  acctExt := coin.OwnerAccount
+  updatedAccount := Account{
+    TotalBalance: acct.TotalBalance - coin.CoinBalance,
+    PublicKey: acct.PublicKey,
+  }
+  updatedAcctBytes := MarshalAccount(updatedAccount)
+  updatedAcctExt := hypergraph.Update("account:Account", acctExt.Ref, updatedAcctBytes)
+
+  coinExt := request.OfCoin
+  updatedCoin := Coin{
+    CoinBalance: coin.CoinBalance,
+    OwnerAccount: hypergraph.Empty(),
+    Lineage: bloom.Apply(coin.Lineage, acctExt.Ref),
+  }
+  updatedCoinBytes := MarshalCoin(updatedCoin)
+  updatedCoinExt := hypergraph.Update("coin:Coin", coinExt.Ref, updatedCoinBytes)
+
+  pendingTransaction := PendingTransaction{
+    ToAccount: request.ToAccount,
+    RefundAccount: request.RefundAccount,
+    OfCoin: coinExt,
+  }
+  pendingTransactionBytes := MarshalPendingTransaction(pendingTransaction)
+  pendingTransactionExt := hypergraph.Create("pending:PendingTransaction", pendingTransactionBytes)
+
+  return updatedAcctExt, updatedCoinExt, pendingTransactionExt, true
+}
+
+There's a lot going on here, so let's break it down into pieces. First, the function declaration:
+
+func main(request CreateTransactionRequest, relay hypergraph.Network) (hypergraph.UpdateExtrinsic, hypergraph.UpdateExtrinsic, hypergraph.CreateExtrinsic, bool) {
+
+When you are writing a function that any node on the network can process (i.e. there is no secret material expected from another party), the convention is to set the second argument to relay hypergraph.Network. The CreateTransactionRequest object is a struct with some additional annotation courtesy of the schema repository functionality of the network:
+
+type CreateTransactionRequest struct {
+  ToAccount hypergraph.Extrinsic `rdf:"create:ToAccount,extrinsic=account:Account"`
+  RefundAccount hypergraph.Extrinsic `rdf:"create:RefundAccount,extrinsic=account:Account"`
+  OfCoin hypergraph.Extrinsic `rdf:"create:OfCoin,extrinsic=coin:Coin"`
+  Signature [114]byte `rdf:"create:Signature"`
+}
+
+Let's ignore the RDF annotation for this article as it's more relevant when getting deeper into the schema related functionality of the network, and observe three fields of type hypergraph.Extrinsic. An extrinsic on the hypergraph is something like a pointer – it is a referential address to data on the network. You can see the immediate relevance in producing fetch and store calls in the method that uses it:
+
+  coinBytes, ok := hypergraph.RetrieveExtrinsic(request.OfCoin)
+  if !ok {
+    return hypergraph.UpdateExtrinsic{}, hypergraph.UpdateExtrinsic{}, hypergraph.CreateExtrinsic{}, false
+  }
+  coin := UnmarshalCoin(coinBytes[:1088])
+
+Handling fetch failures – either produced by data that does not exist or data the requestor has no key to access results in the simple value, ok pattern common in Go like the map type. The return value of the function has two important characteristics, and it shows in the failure case here. When a function fails, the output structs (encoded as actions on the hypergraph: Create/Update/Delete) are empty, and the final value of the return tuple is the boolean false. Functions on Quilibrium essentially take two forms:
+
+Direct MPC (arguments are all active parties)
+
+Open 2PC (the second argument is the relay)
+
+In the first case, the final boolean argument is not necessary. In the second case, it is.
+
+The Unmarshal* and Marshal* functions are automatically generated convenience functions from the schema repository, but you can think of them as simple byte mappers of the stored extrinsic to the struct you wish to interact with.
+
+  acctExt := coin.OwnerAccount
+  updatedAccount := Account{
+    TotalBalance: acct.TotalBalance - coin.CoinBalance,
+    PublicKey: acct.PublicKey,
+  }
+  updatedAcctBytes := MarshalAccount(updatedAccount)
+  updatedAcctExt := hypergraph.Update("account:Account", acctExt.Ref, updatedAcctBytes)
+
+To update the Account extrinsic, the underlying Account struct can be seen being synthesized, byte packed with the MarshalAccount function, and finally the hypergraph.Update function is called, serializing the storage into a hypergraph.UpdateExtrinsic type provided as one of the return values. Note that while fetches appear to happen at any time in the code, they all happen before the circuit is actually evaluated. Similarly, while it appears as if the value is being updated in this hypergraph.Update call, the actual settlement occurs at the end. In this respect, the common safety pattern of Checks-Effects-Interactions that gets violated in building smart contracts, leading to many of the vulnerabilities within, is completely eliminated, because checks become the basis of the executed function, effects and interactions happen after the function's conclusion and order is always well-formed. There are downstream consequences with respect to reentrancy and concurrency, but this is a deeper topic for another article.
+
+  return updatedAcctExt, updatedCoinExt, pendingTransactionExt, true
+
+The function's conclusion is merely returning the update and create extrinsic actions to be processed, along with a boolean status indicating the function was successfully evaluated.
+
+Takeaways
+
+There are some very powerful technologies behind Quilibrium, and it can make the idea of developing for such a network feel very daunting for newcomers. The simplicity of the developer experience utilizes all of this heavy lifting being done at the protocol level in a way that results in an application development process that should feel very comfortable for many non-crypto-oriented developers, and by consequence, this introduction hopefully makes it clear that to build for Quilibrium, the only thing you really need to do is
+
+just write go

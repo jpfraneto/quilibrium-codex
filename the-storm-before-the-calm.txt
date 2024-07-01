@@ -1,0 +1,183 @@
+The Storm Before the Calm - Cassandra Heart
+
+Quilibrium has gained a lot of interest in the past few months as we near the final stage of the Dusk phase of our mainnet release, and by consequence have been stress tested in ways no other network has. This is a great problem to have so early as it gives us an opportunity to address before a serious outage occurred, but has also highlighted some important lessons to reflect upon for those also building ambitious protocols at a similar scale. But, for those who aren't based and quilpilled, let's give a brief rundown of the situation at hand.
+
+Feel free to scroll to Weather Update if you were one of the thousands who were personally victimized by Regina George got hit by the traffic storm and already know what happened and just want to get the roadmap update and clarified questions on tokenomics.
+
+In Mission Control, I set our Dusk phase roadmap of releases, with many folks eagerly anticipating 1.5 in particular, as tokens unlock during this phase, applications can be deployed, and the grand experimentation of building on the network begins. This eager anticipation was equally met with eager participation – in writing Mission Control, I remarked on the network growing to over 9,000 peers. Since that post, we have nearly doubled in node count. To have, in the span of a month, grown from the publicly-reporting number of Ethereum execution nodes to rivaling the publicly-reporting number of Bitcoin nodes is a statement I did not expect to write this year, let alone barely a month after releasing the Dusk phase roadmap.
+
+Before maxis come after me, I'm well aware of the far higher Ethereum consensus validator count, however such a number is mostly nonsense as a "validator" is a logical unit, not a true representation of a node – you can, and many do, run hundreds of validators on a single machine.
+
+In the whitepaper, I envisioned a peer-to-peer message passing protocol to support consensus utilizing a fork of GossipSub, which supported pub-sub through the use of bloom filters, rather than string-based topics. This was far from the original bespoke design from many years ago – one based on a higher dimensional topology (specifically, a six-dimensional hypertoroid), but it addressed an issue I considered to be a point of failure: the structure's rigidity when optimally deployed yielded very high performance, but the nodes being declarative of the data sectors held by them would make them ripe targets for denial of service attacks. As I continued to research a path forward on protecting nodes against such attacks, it reached an obvious conclusion: employing an onion routing scheme, like the one we will use with the 2.0 release, would immediately destructure the mesh anyway, making the point moot. After reviewing the data in the GossipSub article, it seemed like a reasonably conservative choice given its battle testing and adoption by other protocols. What I didn't account for was:
+
+What happens when the number of nodes is greater than what they tested?
+
+What happens when a substantial number of nodes are launched in suboptimal conditions (esp. for the launch stage we're in)?
+
+What happens if they were just wrong and their data was nice because of the specific test cases?
+
+What happens if a message flood is not actually a message flood from an attacker, but legitimate traffic between peers?
+
+Unfortunately Quilibrium wasn't the only protocol who quickly found the limits of GossipSub, as Farcaster Hubs also have encountered the same issue recently. We started to see some of those limitations creeping in at earlier stages, but quickly moved to eliminate a lot of the traffic over it, which gave us some more breathing room. As a real world example of the Law of Large Numbers in action, when the number of nodes reached even greater extremes, the small size of the messages being sent was still enough to reintroduce the message storms we were seeing with the larger, more frequently-emitted messages from individual nodes.
+
+To combat the issues of GossipSub reaching extreme heights in memory consumption and cache invalidations leading to messages landing back on the nodes it already processed, I realised we were at the point where the simpler approach of doing naive flood pub-sub had become more efficient than repeatedly seeing (and sending) messages, and so, that's what I did, and then...
+
+ouch.
+
+"How in the world did it get worse?"
+
+Thankfully, iptraf highlighted the problem immediately: the node kept opening connections to the same peers over and over again, and every send was doubled, tripled, quadrupled, etc. with each connection, until the server toppled over.
+
+An emergency update was issued, switching back to GossipSub, but drastically reducing the number of peers the node attempted to connect to, and our original storm was back a temperamental, but not destructive, state that it was before. This brings us to today, and so now, time for an updated roadmap.
+
+Weather Update
+
+ETA 2024/04/06: v1.4.16 – Noctilucent
+
+Over the past weeks, I have been working towards getting a drop-in replacement pub-sub provider, one that is more closely aligned and optimised for Quilibrium's network traffic. We are going to roll out a simplified version of that this weekend, and should see traffic stabilise to much lower volumes than we've been dealing with in quite some time. A separate writeup will be landing afterwards with the full 2.0 release of the network, as the complete version warrants a mathematical deep dive.
+
+A preview question/answer to spark the imagination: What do thunderstorms and misbehaving protocol storms have in common? You can identify the buildup of electrical charge with respect to a lightning strike and message volumes overwhelming specific nodes that will result in failures with the same deconvolution technique!
+
+ETA 2024/04/15: v1.5.0 – Nightfall
+
+Many folks have privately highlighted some concerns regarding their readiness for managing transactions for large volumes of keys, and so we are going to provide stub CLI tooling prior to 1.5.0 so that people will have an opportunity to pre-validate scripts ahead of the next stage of network launch.
+
+Note regarding ETA: With respect to any additional changes around the release timeframe, I want to clarify that launch times/dates of 1.5.0 and 2.0.0 will both have an advanced notice of at least 72 hours.
+
+CLI Commands in 1.5.0
+
+The CLI tooling itself will be relatively simple, and the commands can be run as follows (assuming a build in the accompanying /client folder rather than go run ./...:
+
+client [--config=<other path than ../node/.config/>] <app> <cmd> <param1> <param2> <...>
+
+Querying Balance
+
+The command line tool takes arguments in either decimal (xx.xxxxx) format or raw unit (0x00000) format. Note that raw units are a multiple of QUIL: 1 QUIL = 0x1DCD65000 units
+
+$ qclient token balance
+50.0 QUIL (Account 0x23c0f371e9faa7be4ffedd616361e0c9aeb776ae4d7f3a37605ecbfa40a55a90)
+
+Querying Individual Coins
+
+Users may wish to view the individual coins:
+
+$ qclient token coins
+25.0 QUIL (Coin 0x1148092cdce78c721835601ef39f9c2cd8b48b7787cbea032dd3913a4106a58d)
+25.0 QUIL (Coin 0x2dda9dc9770a1e5a01974fcd5af2a77147d0f19fb4935a1df677ec6050be0a9e)
+
+Creating a Pending Transaction
+
+Quilibrium's token application has two modes: a two-stage transfer/accept (or reject), or a single-stage mutual transfer.
+
+To perform a two-stage transfer, you have two options:
+
+$ qclient token transfer <ToAccount> <RefundAccount> <Amount>
+<Amount> QUIL (Pending Transaction 0x0382e4da0c7c0133a1b53453b05096272b80c1575c6828d0211c4e371f7c81bb)
+
+or:
+
+$ qclient token transfer <ToAccount> <RefundAccount> <OfCoin>
+<Amount> QUIL (Pending Transaction 0x0382e4da0c7c0133a1b53453b05096272b80c1575c6828d0211c4e371f7c81bb)
+
+Omitting the RefundAccount will simply provide your own originating account. The option to specify exists so that you can maintain anonymity when sending by creating a fresh account to receive the refund. The RefundAccount cannot be the same as the ToAccount.
+
+The first is a user-friendly version of a transfer, akin to what account-based networks like Ethereum and Solana do, where you operate on a balance. Behind the scenes, the client is actually splitting and/or merging coins as needed in order to create the requisite amount to send as a discrete coin. The second is an application-aware version of a transfer, akin to what UTXO-based networks like Bitcoin do, where you operate on the raw coin balance under a specific address. If you have good reason to manage coins separately (yet under the control of the same managing account), you will want to use the second option in conjunction with split/merge operations if needed:
+
+$ qclient token split <OfCoin> <LeftAmount> <RightAmount>
+<LeftAmount> QUIL (Coin 0x024479f49f03dc53fd702198cd9b548c9e96004e19ef6a4e9c5211a9795ba34d)
+<RightAmount> QUIL (Coin 0x0140e01731256793bba03914f3844d645fbece26553acdea8ac4de4d84f91690)
+
+$ qclient token merge <LeftCoin> <RightCoin>
+<Total> QUIL (Coin 0x151f4ae225e20759077e1724e4c5d0feae26c477fd10d728dfea962eec79b83f)
+
+Accepting a Pending Transaction
+
+To accept a pending transaction, you simply run:
+
+$ qclient token accept <PendingTransaction>
+<Amount> QUIL (Coin 0x2688997f2776ab5993894ed04fcdac05577cf2494ddfedf356ebf8bd3de464ab)
+
+The same applies for rejecting a pending transaction
+
+$ qclient token reject <PendingTransaction>
+<Amount> QUIL (PendingTransaction 0x27fff099dee515ece193d2af09b164864e4bb60c19eb6719b5bc981f92151009)
+
+This creates a separate pending transaction because if the refund address is specified by the originator, and were they to specify another of your own addresses, it would be no different than accepting.
+
+Performing a Mutual Transfer
+
+Pending transactions introduce friction, but without that friction, users can be spammed coins they don't want, or sent coins from an address they do not wish to interact with. If both parties agree in advance to transact, they can perform a mutual transfer, where both parties must be online, but can avoid having to deal with the two-phase transaction. This is great for maintaining privacy (each party's account is private) as well as ensuring a timely completion of a transaction:
+
+On the receiver's side:
+
+$ qclient token mutual-receive <ExpectedAmount>
+Rendezvous: 0x2ad567e4fc1ac335a8d3d6077de2ee998aff996b51936da04ee1b0f5dc196a4f
+Awaiting sender...
+
+and after the sender connects:
+
+Awaiting sender... OK
+<Amount> QUIL (Coin 0x0525c76ecdc6ef21c2eb75df628b52396adcf402ba26a518ac395db8f5874a82)
+
+On the sender's side:
+
+$ qclient token mutual-transfer <Rendezvous> <Amount>
+Confirming rendezvous... OK
+<Amount> QUIL (Coin [private])
+
+or if using the raw Coin address:
+
+$ qclient token mutual-transfer <Rendezvous> <OfCoin>
+Confirming rendezvous... OK
+<Amount> QUIL (Coin [private])
+
+This will likely be the first unique experience Quilibrium provides to users already familiar with other networks, as privacy preservation is an immediately obvious and first class experience here by showing the user what it can (or cannot) see.
+
+Claiming Rewards
+
+Tokens issued after 1.5.0 are issued by nodes providing their proofs to the Mint Authority functionality of the token application. Claiming those rewards can be configured to be performed automatically (default, generates a new Coin every claim and merges them), or in lump sums at intervals, manually. It is recommended for ease of management that the defaults are applied, so that in the event of hardware failure no rewards go unclaimed.
+
+If you wish to do it manually however, you will need to run:
+
+$ qclient token mint all
+<Amount> QUIL (Coin 0x162ad88c319060b4f5ea6dbf9a0c2cd82d3d70dfc22d5fc99ca5371083d68416)
+
+Cutoff Dates and Token Supply Questions
+
+LLTI Cutoff
+
+First, to answer folks' questions on the cutoff date for the LLTI NFT cross-mint: the cutoff date will be when 1.5.0 is released, so when the green light is given about 1.5.0 and the 72 hour advanced notice begins, that same 72 hour window also applies to the LLTI NFT. As a reminder, the NFT in question is here: https://opensea.io/collection/long-live-the-internet. Please be aware there are fakes on OpenSea at other URLs. We have tried to report those and get our collection verified, but they have not responded.
+
+Token Supply
+
+The other big question that has recurred is on the subject of token supply, how to predict the issuance changes relative to the network, and some concerns around ways in which it may be gamed. I want to clarify these.
+
+Regarding the retroactive reward, the reward will be instantly applied at time of the 1.5.0 release, and you will see that balance on 1.5.0 when you run the above balance command.
+
+Calculating that balance will follow an issuance rate of 329,728 QUIL/2.5 hours (a full 256 node round's total reward and duration), over the entire history between the last retroactive reward period and the cutoff point prior to the release of 1.5.0. The rewards will be issued evenly to the qualified recipients, relative to their time in the mesh. When the 72 hour cutoff is issued, a URL will be published as well, so that node operators may verify their balance (and the total balance), and give time to ensure if any errors in this tabulation exist, we can rectify them accordingly.
+
+At the current run rate and 1.5.0 ETA, this implies approximately 329,200,435 QUIL will be issued, on top of the existing 97,244,318 QUIL, for a total unlocked supply of 426,444,753 QUIL. This is subject to change relative to the release of 1.5.0.
+
+Issuance and Theory
+
+After 1.5.0, the full Proof of Meaningful Work model applies, and the reward issuance becomes (1/((d/1048576)^(1/2^n)))/2^(s) per interval (10 seconds) for the full reward. To put this into scope, let's assume the network starts out with approximately 1GB of data stored (not fully realistic, there's a lot of accounts now that will have stored reward data, will be closer to 3-4GB). For the given prover, let's assume they have somehow managed to secure a place on all core shard prover slots as within the first prover set. This means over that interval:
+
+n = 1, as we are still in generation one relative to the average rate of time proof production
+
+d = 1, as the network size is 1GB
+
+s = 0, as they somehow managed to secure a place on all core shard prover slots (note this is not actually possible, but this is just for example)
+
+Then plugging in the values, their eligible reward per interval is (1/((1/1048576)^(1/(2^1))))/(2^0) = 1024 QUIL. Note again, this is literally impossible, but it's important to review in the scope of the issuance over the entire network – while logically no one prover can do this, the network as a whole will have eight prover slots filled for their first set in each core shard. So then, extrapolate out:
+
+1024*8+512*8+256*8+128*8+64*8+32*8+16*8+8*8+4*8+2*8+1*8+...
+
+An eager mathematician would note this sequence goes to infinity, but to do so would require infinite nodes.
+
+An eager economist would note this still seems like a large issuance even without infinite nodes. But there's one important catch! Indeed, it would be, if the 1GB were cleanly covered by a single node, but this is not possible, as the sheer number of accounts and coin (all falling into varying shards) that need to be covered are too broad for any one, two, tens, or hundreds of nodes to prove over, resulting in the actual issuance rate to be far lower. Further, claiming rewards, creating new accounts, more nodes joining the network to earn more rewards all add up to more data, and more data pushes d to greater numbers, meaning that the (large, but much smaller than first glance) initial reward rate won't survive for long, reaching a stable equilibrium.
+
+An eager game theorist would note that means that node operators wanting to increase d to reduce issuance as quickly as possible would create and store a bunch of data to alter the supply curve. But there's one other important catch! To do so, they would either have to spend coin to store that data on the network, or ensure their node itself is providing coverage on the data (for eight full provers, at that!), which reduces the overall amount of data they can store and processing they can provide, resulting in a net effect of diminishing returns as they no longer can participate in the liquid compute and data markets given they burdened themselves with spam, again reaching a stable equilibrium.
+
+A terrified database administrator would note that if core shards are so diverse and cannot be covered sufficiently by replication factor that there is a risk of data loss. But there's one final important catch! In order to ensure the network reaches a safe replication factor, nodes can (and will in the early days) issue a multi-shard proof, however that proof is fractionalised in the reward granted such that the reward is inversely proportional to the number of shards covered. e.g. a prover issues a multi-shard proof for 100 shards, and is rewarded for 1/100th of the reward it would have received were it 100 individual proofs. This will likely lead to scenarios where larger shards get dominated for maximal reward, but means that lower power nodes can meaningfully contribute without having to burn absurd CPU cycles, again, reaching a stable equilibrium.
+
+These factors will all have to play out in practice to see what advanced strategies node operators will employ for coverage and maximal reward accumulation, but the net result is a rate initially roughly the same as it is now, that diminishes with network growth (and given our growth rate, should diminish at a steady clip of about a halving every year), until a new generation is unlocked, and inflation begins to keep up.

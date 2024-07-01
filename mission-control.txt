@@ -1,0 +1,154 @@
+Mission Control - Cassandra Heart
+
+Launching a network on the scale of Quilibrium isn't something that happens overnight. As we've seen with many decentralized protocols, it's very hard to steer out of a design decision once it's been made, and so frequently, certain quirks, scalability limits, execution behaviors become ossified, for better or worse. We've been very conscious of this phenomenon, and so a big part of the Dawn phase has been pushing some of the core pieces of Q to its absolute limits:
+
+Single core sub-shard BFT at 9,000 peers (and growing)
+
+Noisy neighbor announcements – all provers emitting conflicting frames instead of using leader election info
+
+MPC coordination over 256 peers at a time (where most applications on Q will only be 2-of-n)
+
+Synchronization mechanics to catch new peers up more quickly
+
+Multi-platform – So many different platforms, environments, network configurations
+
+And every single one of these pieces has had to be rewritten by consequence of this testing. This demonstrates strongly the nature of building distributed systems being much like plans on the battlefield: never surviving first contact – but for the distributed systems case, first contact with both friend and foe.
+
+Dusk
+
+Our cannon shot across the crypto networks, "Long Live The Internet", has been a powerful message, and embodied as an undeniable truth as a referential lattice of bits strung across the current guard: a video on IPFS, an NFT on Ethereum, and rumored whispers over crypto Twitter. We've caught some attention, and in the video, drew a date for this next phase of mainnet to begin: February 29th.
+
+But what exactly is going to happen on February 29th?
+
+We will begin the rollout of a series of updates. These updates will include the components required for mainnet, giving us the opportunity to confirm successful integration in the protocol in stages, similar to the process used in a manned rocket launch. These stages are versioned as follows, with strict go/no-go criteria for being ready to release the next stage:
+
+2024/02/29: v1.4.0 – Sunset – Autoscaling and Coordination
+
+This update will introduce our autoscaling component, which performs a series of self-tests if not yet checked, to determine the best deployment configuration for the node, and broadcasts the peer manifest for nodes to most appropriately interact with it. This is a crucial aspect for ensuring nodes do not overload themselves with traffic they cannot handle, or storage they cannot provide, otherwise they would risk their exclusion from the network. This is something which may require direct diagnostic debugging, and so needs to occur before the network layer "goes dark".
+
+Go Criteria:
+
+Node manifests are broadcasting correctly, and contain accurate info representative of the performance expectations of the server.
+
+Nodes broadcasting inaccurate manifests are appropriately tested and scored out (we will descend an intentional bad batch of 100 nodes to verify against this).
+
+100% of viable node targets reach consensus head (with full history) within two hours.
+
+No-go Criteria:
+
+Node manifests are showing capacity to be synced targets for the ceremony application, but cannot successfully sync.
+
+Nodes are not properly being tested and scored out.
+
+Fewer than 100% of viable node targets reach consensus head (with full history) within two hours.
+
+ETA 2024/03/15: v1.5.0 – Nightfall – Hypergraph Layer
+
+This update will introduce the hypergraph store, which is the first aspect of "going dark" for Dusk. The hypergraph store is the primary data storage layer of Quilibrium on an application level, and provides query and data level privacy for applications, as well as a settlement layer and necessary intrinsics for applications themselves to be deployed and run. The typed data schema repository will be included in this release, as well as the token application, unlocking users' ability to claim and spend their earned tokens.
+
+Go Criteria:
+
+Master frame commitments have 500ms roundtrip settlement.
+
+OT execution can successfully evaluate in-circuit non-parallel AES encryption/decryption of data at an average rate of 1 kibibyte per second (peak performance should reach much higher, this is assuming poor network performance).
+
+Settlement of conflicting data is handled deterministically by virtue of the hypergraph's conflict-free replication behavior.
+
+Token application functions all verify successfully on mainnet
+
+No-go Criteria:
+
+Master frame commitments have >500ms roundtrip settlement.
+
+OT execution does not achieve target minimum average performance level.
+
+Data conflicts induce network partitions.
+
+Token application functions experience failures.
+
+ETA 2024/03/31: v2.0.0 – Midnight – Onion Routing and Mixnet
+
+This is the final update stage of Dusk, and finalizes the process of "going dark". The networking layer will introduce an intermediary component for peer channels, which performs onion routing between nodes (this is facilitated by Sunset's node manifest broadcasts to avoid poor routing scenarios), and message traffic mixing via the shuffled lattice routing technique. This gives holistic privacy of the network, as not only are the storage and execution interactions E2EE, but the traffic itself becomes statistically private against both passive and active adversaries.
+
+Success Criteria:
+
+Traffic routing distributes broadly without centralizing areas of the network.
+
+Shuffled lattice routing cannot be passively defeated.
+
+Shuffled lattice routing cannot be actively defeated, sabotage attempts should produce proper identifying aborts.
+
+Performance overhead of the overall traffic routing strategy does not reduce baseline performance of OT execution targets from Nightfall.
+
+Given the substantially novel techniques being introduced in Quilibrium, there is the potential for failures, both known (hence no-go criteria) and unknown (like how we discovered new performance issues as the network has grown quite large in the performance testnet phase). The approach above gives us the greatest ability to identify these ahead of them becoming problems structurally inherent in the network and immitigable as adoption has ossified them (or the community embraces these failings as "features", such as how some of the Ethereum community considers MEV to be "a good thing, actually").
+
+Beyond Dusk
+
+The future releases beyond Dusk have greater variability and may change in response to adoption, new use cases, or urgency with respect to legislation or state action. For now, these are the tentative release plans for Equinox and Event Horizon.
+
+Equinox
+
+The Equinox release is intended to deliver lower level support for the distinct nuances of certain application types. The high level applications we want to provide at the Quilibrium managed services layer will be:
+
+S3 API-compatible object store
+
+Redis-compatible KVS
+
+CQL-Compatible wide column store
+
+Lambda API-compatible discrete function store
+
+KMS API-compatible key management service
+
+To enable these, the Equinox release will include the following primitives:
+
+Linked data resource standard
+
+Intrinsic level implementations of specific signing algorithms
+
+Meta-virtualization runtime
+
+Equinox, assuming all goes well in supporting and releasing Dusk, is targeted for a Q2/Q3 timeframe.
+
+Event Horizon
+
+The Event Horizon release is intended to be the more ambitious of updates, giving wide range of feature support for many different application domains:
+
+E2EE Streaming audio, image, and video support
+
+Adjustable interval-driven executions
+
+AI/ML model training and execution
+
+The underlying primitives will already exist at Dusk, but will be exposed as protocol-level intrinsics:
+
+P2P encrypted channels
+
+Sub-vector clock exposure
+
+RPM as an intrinsic
+
+Event Horizon, assuming all goes well in supporting and releasing Dusk and Equinox, is targeted for a Q3/Q4 timeframe.
+
+Questions on Tokens
+
+While there's a lot of really cool technology being built, some folks are interested in the details about the upcoming token unlock in Dusk, what the retroactive rewards will look like, when they will be reflected in the balance on nodes, and so on. We are adding this small FAQ below to assist.
+
+Dusk is multi-stage, when do the tokens unlock?
+
+The first stage of Dusk's rollout is February 29, but the tokens do not unlock until the hypergraph layer is live, so we are looking at roughly the 15th of March. Specifically, stay on watch for v1.5.0/Nightfall.
+
+What are the expected rewards for the retroactive reward?
+
+The retroactive rewards will be calculated at a granular level, essentially applying the token issuance rate of a fully filled round (log2(256)*161 QUIL / 2.5 hr) to the history of nodes participating on the network for the full duration in which rewards were not properly accumulating. Leading to the 15th of March, this is estimated to be 231,073,382 QUIL that will be rewarded.
+
+What will be the token supply when tokens unlock?
+
+231,073,382 QUIL in addition to the existing supply of 97,238,844 QUIL will total to 328,312,226 QUIL.
+
+How will we know the change of the token supply if the network is E2EE?
+
+Review the Proof of Meaningful Work explainer, as it details issuance rate calculation: https://paragraph.xyz/@quilibrium.com/proof-of-meaningful-work
+
+The network will be E2EE, yes, so if nodes do not claim the tokens they're eligible for, then the QUIL tokens essentially exist logically, but are inactive.
+

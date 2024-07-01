@@ -1,0 +1,113 @@
+A Taste of The Future - Cassandra Heart
+
+Farcaster Frames was released to much fanfare yesterday, and on the surface the deceptively simple idea has already yielded incredible creativity, with everything from MUDs, to polls, to NFT mints. And the number of folks ideating over the potential was even larger. Then along came this post:
+
+Challenge accepted.
+
+So naturally of course, people learned two things very quickly:
+
+Frames can be animated
+
+Q has a metavm project
+
+And boy did that generate some questions. So what I'm setting out to do in this article is circle back on my post from three days ago, where I spoke about showing what the future of computing and crypto will look like very soon. For those who got to try the demo out before the VPS host piping the command data over decided to nerf the vCPU and not respond to tickets (Big shout out to Vultr, you're a garbage service), congrats – you just got your first taste of that future I was describing.
+
+So in this article, I'm going to describe how it works, and how I was able to build it in only two hours.
+
+Farcaster Frames use meta tags in a style very similar to opengraph, enhancing it with custom button texts and submission urls that can be signed by users on Farcaster, presenting a basic loop:
+
+That frame data includes an image url to display, which is expectedly rendered in an <img> tag. But browsers support a lot of image formats, and so I remembered an old trick used by webcams back in the day: MJPEG. With MJPEG, you can hang onto a request indefinitely until the user closes it, and send back raw JPEG images one by one. This meant I didn't need special video support, I could just use an endpoint that returned MJPEG as a response for the frame image url.
+
+Now I just needed to test it, so I built a simple Next.js API handler that kept an open connection and streamed to all active connections the same frame as it was rendered. I started simple, and just made a setInterval loop that loaded six images from local fs and sent them every 500ms:
+
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { join } from 'path';
+import { createCanvas } from "canvas";
+
+let frame = 0;
+const clients: any[] = [];
+
+export const images = [
+  fs.readFileSync(join(process.cwd(), 'images/image1.jpg')),
+  fs.readFileSync(join(process.cwd(), 'images/image2.jpg')),
+  fs.readFileSync(join(process.cwd(), 'images/image3.jpg')),
+  fs.readFileSync(join(process.cwd(), 'images/image4.jpg')),
+  fs.readFileSync(join(process.cwd(), 'images/image5.jpg')),
+  fs.readFileSync(join(process.cwd(), 'images/image6.jpg')),
+];
+
+export default async function handler(this: any, req: NextApiRequest, res: NextApiResponse) {
+  var headers: any = {};
+  var multipart = '--mjpeg';
+
+  headers['Cache-Control'] = 'private, no-cache, no-store, max-age=0';
+  headers['Content-Type'] = 'multipart/x-mixed-replace; boundary="' + multipart + '"';
+  headers.Connection = 'close';
+  headers.Pragma = 'no-cache';
+
+  res.writeHead(200, headers);
+
+  const ref = {
+    mjpegwrite: (buffer: any) => {
+      res.write('--' + multipart + '\r\n', 'ascii');
+      res.write('Content-Type: image/jpeg\r\n');
+      res.write('Content-Length: ' + buffer.length + '\r\n');
+      res.write('\r\n', 'ascii');
+      res.write(buffer, 'binary');
+      res.write('\r\n', 'ascii');
+    },
+    mjpegend: () => {
+      res.end();
+    },
+  };
+
+  var close = function() {
+    var index = clients.indexOf(ref);
+    if (index !== -1) {
+      clients[index] = null;
+      clients.splice(index, 1);
+    }
+  };
+
+  res.on('finish', close);
+  res.on('close', close);
+  res.on('error', close);
+
+  clients.push(ref);
+}
+
+export const mjpegsend = (buffer: any) => {
+  for (var client of clients)
+      client.mjpegwrite(buffer);
+};
+
+setInterval(() => {
+  mjpegsend(frames[frame]);
+  frame++;
+  frame %= 6;
+}, 100);
+
+
+Loading the API handler url in the browser worked swimmingly. Ok, great, so then the next challenge: make it run Doom.
+
+Luckily for me, I already solved this problem in the research around Quilibrium. One of the advanced features that will be launched later this year is the metaVM, which translates instruction set architectures into an executable format usable by the network, along with many other important components to support a fully functioning VM. The metaVM supports a basic framebuffer device which is IO mapped to RAM at a specific location. The VM translates to a choice of execution calls: durable – on the hypergraph, and therefore somewhat slower, or ephemeral – does not store execution state, and is merely piped over. Supporting keyboard and mouse inputs work similarly with hardware interrupts. Finally, the file system itself is fulfilled with a virtio-9p compatible application, which translates R/W requests for inodes into hypergraph calls. Together, you get a fully distributed virtual machine with optional durability at multiple levels. This, despite sounding rather complicated, is quite simple to implement on Q, and looks a lot like a traditional emulator when you dive into the code.
+
+So then the remaining tasks became only the following remaining items:
+
+Handle inputs from the buttons and send them back as key down/key up events
+
+Build the framebuffer worker and kick it off on start of the Frame server
+
+Convert the framebuffer data into JPEGs
+
+Deploy a filesystem map compatible with the metaVM virtio-9p driver with Linux with Doom to the hypergraph
+
+Execution state updates with the RPC client can be streamed directly from metaVM, so we carved it out to the section of RAM containing the framebuffer, and directly invoked the interrupts for keyboard inputs. That's the first two down.
+
+Node doesn't have a clearcut way to quickly convert buffers to JPEGs, and I wanted to hack this together quickly, so I used node-canvas to serve as the render target for the raw image data, then used canvas.toBuffer('image/jpeg') to create the image. Publishing the buffer data over the worker, the message handler on the API side then only needs to directly call the mjpegsend(buffer) method defined above. Next one down.
+
+For the last one, I had a bit of a cheat here, in that I already built this filesystem map a while ago to demo metaVM (hi friends on Unlonely!) and the QConsole. That's all the work needed done.
+
+Architecturally, the frame integration then looks like this:
+
+And there you have it: Doom on Frames.

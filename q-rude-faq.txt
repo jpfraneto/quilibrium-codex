@@ -1,0 +1,91 @@
+Q Rude FAQ - Cassandra Heart
+
+In a break from the typical conventions of this blog, I am strictly writing from my point of view as a development leader of Quilibrium, rather than from the perspective of the broader protocol and team.
+
+It is something people either love or hate about me, but I am notoriously curt. It's lead to moments in my career where I've decided I've "said everything I needed to say" and moved on. It is a behavior I myself am not immune from being the target of, as I too have had moments where I've had to re-evaluate myself and make tough choices. I welcome this skepticism from others, even if it's not delicately couched, because truth is something scarce in crypto and if people feel skeptical about something, it's either because 1. something is actually wrong, or 2. something is poorly communicated. As folks have joined in the journey of Quilibrium at different times (or in the case of quite a few, just the past few days), I believe it will be helpful to answer some questions that are frequently asked, and for the sake of getting to the point, the questions will be phrased as curtly as possible, thus: a Q "Rude" FAQ.
+
+What the fuck is Q?
+
+Quilibrium is a protocol under active development with a core mission to secure every bit of traffic on the web. We believe that previous attempts at doing this through trusted institutions have failed, evinced by revelations by Snowden and others, as well as through their own actions – one only need to look briefly at Cloudflare's and others' deplatforming before it starts to get a little uncomfortable about their behaviors in playing internet cop. To answer this, you need to solve for securely decentralizing the web – servers, storage, traffic. This is not a challenge I take lightly, and hard tech problems require hard tech answers.
+
+On Christmas Day, 2022, I released the Q Whitepaper, which was essentially a heavily cut down box of cryptographic scraps with relatively inaccessible language. What I was largely trying to achieve with the paper was introduce the distinct components of the network, the way in which they are integrated, and provide deeper reference to where and on what these ideas were founded. If you've been deep in the cryptography research space, very little of Q's whitepaper will feel novel, because it isn't – every idea we have utilized is based on existing, battle tested cryptography. We have even shelved one idea that was too far off the beaten trail – PCAS, because it lacked sufficient peer review on the foundations from which it was born.
+
+However, I consider the whitepaper's complexity to be my greatest mistake, and should have opted for an initial litepaper, a simpler whitepaper, and a thorough yellowpaper. I have tried to correct much of this through the use of interactive documentation and labs on the Quilibrium website, but there is still much more work to be done in making this accessible. I do not accept "it's too complex to understand" as a reasonable state to be in, because 1. I don't believe that anything is too complex to understand, as 2. it only means I have yet to find the right way to convey the information succinctly enough. One thing I will never do is tell people they are incapable of understanding – I am a firm advocate of the Lucky 10,000 philosophy, and I love teaching, as it also helps me understand what I haven't conveyed well enough.
+
+In short, if you have questions, never feel afraid to ask them – I may not always be able to answer right away, but I do try to answer every question received as thoughtfully as possible. We are past the era of where skepticism of cryptocurrency's existence itself was rightfully met with "you do not understand, I am not engaging in this", because cryptocurrency is now self evident, but rather, skepticism towards specific approaches or protocols is extremely warranted and if pushback rather than an answer is the response given, it warrants even greater skepticism.
+
+The next article plans to ELI5 everything about Q, so if you're looking for the gentlest introduction we've had yet to the underlying technology, please stay tuned for this.
+
+How does this differ from other attempts?
+
+There are some famous "world computer" attempts historically:
+
+Ethereum – a popular platform for smart contracts and finance, but is limited in scalability, and privacy has necessarily been bolt-on.
+
+Solana – somewhat seen as a runner up to Ethereum in success, but still remains tightly coupled to finance.
+
+Internet Computer/Dfinity – Entirely different model for scaling, a subnet-based model, and does not provide network or data privacy as an essential component, nor is it performing confidential compute to achieve its goals.
+
+IPVM – I know a few folks personally from that and the broader teams at Fission, and I'm saddened by the news that they have shuttered. Similar to Dfinity, however, it was an open compute platform, and did not have network or data privacy as an essential component.
+
+The most significant difference comes down to three major concerns: scale, structure, and privacy.
+
+Scale: The scaling design mirrors the "shared-nothing" approach used by ScyllaDB, which enables extremely high horizontal scalability, and the execution context enables extremely fast trustless compute on private data, resulting in a network which can handle applications on the 200,000 messages/second scale needed by iMessage, the petabytes of data needed by social media platforms for image hosting, or the unique rules evaluation needed by a highly customizable massively multiplayer game engine.
+
+Structure: Q is a tabula rasa reinvention of a decentralized network, such that structurally it looks practically nothing like a blockchain – at best, you could think of the global proof sequencing as the blockchain component, but it is more in line with Satoshi's original term used for Bitcoin, in that this component is a timechain.
+
+Privacy: Traffic is anonymized akin to Tor, analytic privacy and transactional settlement is further secured by the same technique proposed to stop MEV on Ethereum, and input privacy is provided through a multi-party confidential compute execution environment.
+
+Why am only I hearing about this all of the sudden?
+
+You aren't on Farcaster.
+
+I do not use Twitter – it's rife with scammers which they refuse to shut down, is largely dominated by crabs-in-a-bucket bloodsport, and generally has brought out the worst in people. Quilibrium Inc will never have a Twitter presence, and true to my prior statement, indeed there are scammers imitating both Q and community members, spamming wallet drainer links. Twitter, as is expected, is doing nothing to address this. Farcaster (NB: I am employed at the company developing Farcaster, however they are wholly separate from my work on Q) is a sufficiently decentralized social media platform that has successfully avoided much of these problems with One Simple Trick: you have to pay to have an account.
+
+We aren't doing social media campaigns.
+
+Q has been largely grassroots – we never contracted a "KOL" (in fact, I detest the term), have barely participated in any sponsorship or advertising (once, during NFT NYC 2023 to help kick off our KZG ceremony (a process which provided randomness to secure proofs on the network), and a second time, at FarCon 2024), choosing instead to keep development prioritized, communication density high, and audience as blended as possible to help find gaps in where communication and resources could be better.
+
+What does wQUIL have to do with all of this?
+
+Many people were making arrangements around the unlocked availability of the network's reward token, including consolidation into a single node, due to the improved reward algorithm in the next major network update. We decided that launching the interim step version 1.5 was not going to be a satisfactory release as the greater issue of mixnet routing needed to come first, further delays would not be acceptable, and moving forward on 1.5 as-is would cause significantly greater headaches for developers as their focus would be split between supporting an interim release alongside developing the final major unlocking release, 2.0, destroying all future velocity and momentum for development. Instead, we revisited the overall release plan, cut interim steps out of the plan, and moved in place items that were "roughly equivalent" in function, but would be less likely to interfere with continued development and launch of 2.0 (which was expected to be at least a month after 1.5 given previous go/no-go circumstances), and began to put in place significant process maturity improvements. Since a bridge was already on roadmap of 2.0, we decided to pivot into launching one leg of the bridge early, as it satisfied the unlocked/transferrable condition of tokens that was in 1.5. Thus, wQUIL is the wrapped QUIL token, 1:1 to the rewards earned by node operators following the protocol.
+
+The QUIL token's purpose is a utility token as a unit of exchange for compute and storage on the network, which is why the Proof of Meaningful Work algorithm is one which scales over the usage of the network – to directly handle the relationship of supply/demand in the face of generational growth of technology with respect to hardware improvements.
+
+The total supply at the time of bridge instantiation, and available supply to cross-mint as an ERC-20 is 561,246,480.536822 QUIL. That being said, Quilibrium Inc's peers (as listed in the bootstrap peer list) have no purpose or need to bridge over as an ERC-20, and so these specific peers' rewards not only will not be cross-minted, they are tripwires that would shut down the bridge if a successful claim signature were issued.
+
+So what and when is the next release?
+
+The next release, 1.4.18, is another step in both process maturity and battle hardening another important component of the proof of meaningful work protocol. This will be the first time our signed releases are verified by the node software itself before starting (with an optional flag to skip this verification for folks wanting to run straight from source), and a stricter liveness validation test to confirm that peers are performing as they claim to be. We are targeting the end of next week (2024/05/24) however following our new process the v1.4.18 branch will appear on the repository sooner than that.
+
+Performance? What does this impact?
+
+As we neared the unlock of the token, a staggeringly huge number of nodes appeared on the network, attempting to accumulate the bulk of rewards. Many nodes were operating honestly, but there was a significant quantity that were dishonest, and doing the bare minimum behaviors necessary to be rewarded. As 1.5 intended to introduce Proof of Meaningful Work, we are adopting a simplified version of this to combat the dishonest node problem in 1.4.18, such that any subsequent reward issuance since the last rewards update is disqualified for these dishonest nodes, also bringing rewards directly in line with the issuance rate of PoMW.
+
+How do subsequent rewards factor in now that the bridge is live?
+
+Reward tabulations will receive one final update after 1.4.18 has been released, and in 1.4.19, you will be able to see your latest reward values directly from your node.
+
+Given the previous reward strategy went on for longer than expected, what does the maximum token issuance look like?
+
+This was never a precise value, as it was intrinsically related to the usage of the network itself, as documented in Proof of Meaningful Work. That being said, we are still within expectations that the first generation of the network (roughly the next nine years at this point) will reach a maximum between 1 to 2 billion QUIL, albeit likely closer to 2. If this generation takes longer to move beyond, then token issuance for the network will have reduced to roughly zero, and rewards for nodes will be strictly limited to fees imposed by node operators.
+
+Cool story, I'm not reading all of the above, when 2.0?
+
+Short answer: We are taking incremental steps, targeting a cadence of new releases every two weeks until 2.0 is achieved.
+
+Longer answer: Originally the plan for the network was to avoid the complications of testnets since we were a small group of people working together to build this network. The scale of peers and degree of malicious behaviors on the network changed the problem scope we're working in, and forces us to adopt a stricter level of maturity on release management and validation. With 1.4.18, a separate testnet (with no mainnet incentives) will be created, and anyone desiring to participate in this testnet should be doing so solely out of the interest in improving the protocol. This allows us to vet changes on a live running network without having to roll out those changes directly on the mainnet experimentally as had been done previously. Given the greater degree of process involved in performing these releases and developers and volunteers who will need to be coordinated to conduct the release process, we will move to a bi-weekly release cadence, until 2.0, thereafter re-evaluating the release cycle timeframe to whatever is a better fit.
+
+This entails additionally rolling out the following items ahead of the full release of 2.0:
+
+Greater documentation and tooling for developers so they can build applications comfortably ahead of general deployment availability.
+
+A standardized process for building new cryptographic primitives so folks wanting to contribute advanced functionalities to the network for specific use cases can do so in a simple well-understood manner.
+
+A node dashboard beyond the simpler grafana ones built by the community, which makes it easier to see the health of nodes and the overall network statistics.
+
+Questions Already Answered Elsewhere But Answered Again Here
+
+What does the Long Live the Internet collectible do?
+
+It's a collectible to celebrate the second stage of the network we are currently in, leading up to the full launch of 2.0. There will be a copy on Q to claim after 2.0 is released, which will be a small demonstration of how collectibles work on Q, the storage of the contents of the collectible itself (on Q, not an IPFS link), and would also be the first collectible on Quilibrium directly, which is kind of cool as a historic note.

@@ -1,0 +1,27 @@
+Mission Above All - Cassandra Heart
+
+Quilibrium's mission is to secure every bit of traffic on the Internet, whether that's native applications on the network, other interoperable protocols, or "clearnet" (i.e. still TLS, but relying on CAs and third parties) services. On the roadmap outlined in Mission Control, we set go/no-go criteria for advancing to the next stage. At the time this was set, the network was 9,000 in total peers. This was two and a half months ago. We are now past 100,000 peers, some more asynchronously checking in than others (more on that in a bit), and with that change in order of magnitude, we've had to also make many changes in plans along the way. We are making one final revision: We're going to begin the rollout process of our cross-chain bridge and enable claiming of presently-earned tokens as wrapped QUIL via ERC-20 before this week's end and removing 1.5 from the roadmap, focusing thereafter on the work to upgrade from 1.4 directly to 2.0.
+
+Why did this change?
+
+One month ago, in The Storm Before The Calm, I remarked that we nearly doubled in size in a little over a month, and was astounded at the massive swell of attention and node deployments. This has also resulted in our very small collection of volunteers, contributors, and myself, to be stretched beyond human limits. It's led to moving too quickly and breaking things, such as the packet storm in the aforementioned article. Turning on the valves and opening up the network to permissionless applications and token interactions in the midst of these rapid protocol changes threatens the very safety of the protocol, and 1.5 was in of itself a concession to the mission – to make some aspects of the network permissionless, but not guarantee full privacy or random settlement order to transactions. We've seen with MEV on other networks how dangerous this can be, and given prover slot priority, it would certainly be taken advantage of, which threatens the overall mission and fairness. And so we're going to push back on the launch of 1.5, by removing it entirely from our sequence in order to safely ensure we can move into 2.0, and do so more quickly than letting 1.5 settle in with all its consequences and drawbacks. This gives us some flexibility around how the next series of releases progress as we combat sybil attacks, and also means that we can begin setting up additional measures to improve the maturity of our release process (all future releases will have a number of volunteers and contributors participating in the signing of releases such that a new version should not be automatically upgraded to unless it has had a majority of signatures) and even roll out some aspects earlier than expected (such as cross-chain bridging, starting with wrapped QUIL on Ethereum).
+
+What does that mean, and how does that affect timelines/expectations?
+
+Signed Releases and Deprecating the Previous CD Script
+
+Tonight will be an updated release from the 1.4.x series, 1.4.17 – Aurora, and also the first signed release. Signed releases after 1.4.17 will break the existing continuous deployment script, and with 1.4.18 a new one will be created that will only run from tagged releases that have a majority of signatures from the signatories. The release process will follow:
+
+New version branch
+
+Deterministic build and corresponding checksum
+
+Signed checksums uploaded
+
+Version branch merged into main, tagged by version, and a corresponding release entry added
+
+Cross-Mint
+
+1.4.17 is updated with a new client command, cross-mint. This command will allow you to issue proofs such that you can claim wrapped QUIL as an ERC-20. It will not require the upgrade to 2.0 in order to immediately function, as we are going to move forward in the rollout process of setting up the bridge, starting with an MPC-based deployment of the ERC-20 contract that we can migrate to become fully embedded within 2.0 when it goes live – this was part of the original roadmap, as some have already realized:
+
+This will mean for those who have already accumulated rewards by running nodes, you will be able to claim those rewards on Ethereum starting within the next two days when this contract is deployed. Tokens earned after this contract has been deployed will not be cross-mintable until 2.0 has been released. Full instructions will accompany an update on the website to complete this cross-mint interaction when the contract is deployed, and note, this is optional – if you prefer to await the full launch of 2.0, you can do so.
